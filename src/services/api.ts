@@ -527,8 +527,8 @@ class ApiService {
     });
   }
 
-  async getMyRooms(accessToken: string): Promise<ApiResponse<RoomListResponse[]>> {
-    return this.request<ApiResponse<RoomListResponse[]>>('/rooms/my', 
+  async getMyRoom(accessToken: string): Promise<ApiResponse<RoomResponse>> {
+    return this.request<ApiResponse<RoomResponse>>('/rooms/my', 
       this.withAuthHeader({ method: 'GET' }, accessToken)
     );
   }

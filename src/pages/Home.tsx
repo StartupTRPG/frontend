@@ -166,206 +166,69 @@ const Home: React.FC = () => {
 
       {/* 방 생성 모달 */}
       {showCreateModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000,
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '30px',
-            borderRadius: '8px',
-            width: '400px',
-            maxWidth: '90%',
-          }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'white', padding: 30, borderRadius: 8, minWidth: 350 }}>
             <h2>방 생성</h2>
             <form onSubmit={handleCreateRoom}>
-              <div style={{ marginBottom: '15px' }}>
-                <label htmlFor="title" style={{ display: 'block', marginBottom: '5px' }}>
-                  방 제목 *
-                </label>
-                <input
-                  type="text"
-                  id="title"
-                  value={createForm.title}
-                  onChange={(e) => setCreateForm({ ...createForm, title: e.target.value })}
+              <div style={{ marginBottom: 10 }}>
+                <label>방 제목</label>
+                <input 
+                  type="text" 
+                  value={createForm.title} 
+                  onChange={e => setCreateForm({ ...createForm, title: e.target.value })} 
+                  style={{ width: '100%', padding: 8, marginTop: 4 }}
                   required
-                  style={{ width: '100%', padding: '8px', border: '1px solid #ddd' }}
                 />
               </div>
-
-              <div style={{ marginBottom: '15px' }}>
-                <label htmlFor="description" style={{ display: 'block', marginBottom: '5px' }}>
-                  방 설명
-                </label>
-                <textarea
-                  id="description"
-                  value={createForm.description}
-                  onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
-                  style={{ width: '100%', padding: '8px', border: '1px solid #ddd', height: '80px' }}
+              <div style={{ marginBottom: 10 }}>
+                <label>설명</label>
+                <input 
+                  type="text" 
+                  value={createForm.description} 
+                  onChange={e => setCreateForm({ ...createForm, description: e.target.value })} 
+                  style={{ width: '100%', padding: 8, marginTop: 4 }}
                 />
               </div>
-
-              <div style={{ marginBottom: '15px' }}>
-                <label htmlFor="max_players" style={{ display: 'block', marginBottom: '5px' }}>
-                  최대 인원
-                </label>
-                <select
-                  id="max_players"
-                  value={createForm.max_players}
-                  onChange={(e) => setCreateForm({ ...createForm, max_players: parseInt(e.target.value) })}
-                  style={{ width: '100%', padding: '8px', border: '1px solid #ddd' }}
-                >
-                  <option value={4}>4명</option>
-                  <option value={5}>5명</option>
-                  <option value={6}>6명</option>
-                </select>
+              <div style={{ marginBottom: 10 }}>
+                <label>최대 인원</label>
+                <input 
+                  type="number" 
+                  value={createForm.max_players} 
+                  min={2} max={10}
+                  onChange={e => setCreateForm({ ...createForm, max_players: Number(e.target.value) })} 
+                  style={{ width: '100%', padding: 8, marginTop: 4 }}
+                  required
+                />
               </div>
-
-              <div style={{ marginBottom: '15px' }}>
-                <label htmlFor="visibility" style={{ display: 'block', marginBottom: '5px' }}>
-                  공개 설정
-                </label>
-                <select
-                  id="visibility"
-                  value={createForm.visibility}
-                  onChange={(e) => setCreateForm({ ...createForm, visibility: e.target.value as 'public' | 'private' })}
-                  style={{ width: '100%', padding: '8px', border: '1px solid #ddd' }}
+              <div style={{ marginBottom: 10 }}>
+                <label>공개 여부</label>
+                <select 
+                  value={createForm.visibility} 
+                  onChange={e => setCreateForm({ ...createForm, visibility: e.target.value as 'public' | 'private' })}
+                  style={{ width: '100%', padding: 8, marginTop: 4 }}
                 >
                   <option value="public">공개</option>
                   <option value="private">비공개</option>
                 </select>
               </div>
-
-              {/* 비밀번호 입력란 제거 */}
-              {/* <div style={{ marginBottom: '20px' }}>
-                <label htmlFor="password" style={{ display: 'block', marginBottom: '5px' }}>
-                  방 비밀번호 (선택사항)
-                </label>
-                <input
-                  type="password"
-                  id="password"
-                  value={createForm.password}
-                  onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
-                  placeholder="비밀번호를 입력하면 비공개 방이 됩니다"
-                  style={{ width: '100%', padding: '8px', border: '1px solid #ddd' }}
-                />
-              </div> */}
-
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  style={{
-                    padding: '10px 20px',
-                    border: '1px solid #ddd',
-                    backgroundColor: '#f5f5f5',
-                    cursor: 'pointer',
-                  }}
-                >
-                  취소
-                </button>
-                <button
-                  type="submit"
-                  disabled={createLoading}
-                  style={{
-                    padding: '10px 20px',
-                    backgroundColor: '#4CAF50',
-                    color: 'white',
-                    border: 'none',
-                    cursor: createLoading ? 'not-allowed' : 'pointer',
-                  }}
-                >
-                  {createLoading ? '생성 중...' : '방 생성'}
-                </button>
-              </div>
+              <button 
+                type="submit"
+                style={{ backgroundColor: '#4CAF50', color: 'white', border: 'none', padding: '10px 20px', marginTop: 10 }}
+                disabled={createLoading}
+              >
+                {createLoading ? '생성 중...' : '방 생성'}
+              </button>
+              <button 
+                type="button"
+                onClick={() => setShowCreateModal(false)}
+                style={{ marginLeft: 10, padding: '10px 20px' }}
+              >
+                취소
+              </button>
             </form>
           </div>
         </div>
       )}
-
-      {/* 비밀번호 입력 모달 제거 */}
-      {/* {showPasswordModal && selectedRoom && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000,
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '30px',
-            borderRadius: '8px',
-            width: '400px',
-            maxWidth: '90%',
-          }}>
-            <h2>방 비밀번호 입력</h2>
-            <p>"{selectedRoom.title}" 방에 입장하려면 비밀번호를 입력하세요.</p>
-            
-            <form onSubmit={handlePasswordSubmit}>
-              <div style={{ marginBottom: '20px' }}>
-                <label htmlFor="roomPassword" style={{ display: 'block', marginBottom: '5px' }}>
-                  비밀번호
-                </label>
-                <input
-                  type="password"
-                  id="roomPassword"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  style={{ width: '100%', padding: '8px', border: '1px solid #ddd' }}
-                  autoFocus
-                />
-                {passwordError && (
-                  <p style={{ color: 'red', fontSize: '14px', marginTop: '5px' }}>
-                    {passwordError}
-                  </p>
-                )}
-              </div>
-
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                <button
-                  type="button"
-                  onClick={handlePasswordCancel}
-                  style={{
-                    padding: '10px 20px',
-                    border: '1px solid #ddd',
-                    backgroundColor: '#f5f5f5',
-                    cursor: 'pointer',
-                  }}
-                >
-                  취소
-                </button>
-                <button
-                  type="submit"
-                  style={{
-                    padding: '10px 20px',
-                    backgroundColor: '#2196F3',
-                    color: 'white',
-                    border: 'none',
-                    cursor: 'pointer',
-                  }}
-                >
-                  입장
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )} */}
     </div>
   );
 };

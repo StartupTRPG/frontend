@@ -16,7 +16,7 @@ const RoomLobby: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [myProfile, setMyProfile] = useState<any>(null);
   const { user } = useAuthStore();
-  const { getRoom, startGame, endGame, getMyProfile } = useApi();
+  const { getRoom, startGame, endGame, getMyProfile, getMyRooms, getMyRoom } = useApi();
   const { isConnected, error: connectionError, joinRoom, leaveRoom, socket } = useSocket({
     token: useAuthStore.getState().accessToken || '',
   });
@@ -38,6 +38,27 @@ const RoomLobby: React.FC = () => {
     });
     // 필요시 socket.on(...)으로 이벤트 리스너 등록 가능
   }, [roomId, isConnected, navigate]);
+
+  useEffect(() => {
+    if (!socket || !roomId) return;
+
+    // join_room, leave_room 이벤트 수신 시 /rooms/my 호출
+    const handleRoomUserChange = () => {
+      getMyRoom().then((res: { data: RoomResponse }) => {
+        if (res.data && res.data.id === roomId) {
+          setRoom(res.data);
+        }
+      });
+    };
+
+    socket.on(SocketEventType.JOIN_ROOM, handleRoomUserChange);
+    socket.on(SocketEventType.LEAVE_ROOM, handleRoomUserChange);
+
+    return () => {
+      socket.off(SocketEventType.JOIN_ROOM, handleRoomUserChange);
+      socket.off(SocketEventType.LEAVE_ROOM, handleRoomUserChange);
+    };
+  }, [socket, roomId, getMyRoom]);
 
   const fetchRoom = async () => {
     try {
