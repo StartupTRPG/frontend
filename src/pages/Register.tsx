@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useRegister } from '../hooks/useRegister';
+import './Login.css'; // 로그인과 동일한 스타일 적용
+import './Register.css';
 
 const Register: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -11,118 +13,112 @@ const Register: React.FC = () => {
     confirmPassword: '',
   });
   
-  const { register, loading, error, success, resetState } = useRegister();
+  const { register, loading, error, success } = useRegister();
   const navigate = useNavigate();
 
-  // 회원가입 성공 시 로그인 페이지로 리다이렉트
   useEffect(() => {
     if (success) {
-      const timer = setTimeout(() => {
-        navigate('/login');
-      }, 2000); // 2초 후 리다이렉트
-
-      return () => clearTimeout(timer);
+      alert('회원가입이 완료되었습니다! 로그인 페이지로 이동합니다.');
+      navigate('/login');
     }
   }, [success, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (formData.password !== formData.confirmPassword) {
       alert('비밀번호가 일치하지 않습니다.');
       return;
     }
-
     const { confirmPassword, ...registerData } = formData;
     await register(registerData);
   };
 
-  // 회원가입 성공 시 성공 메시지 표시
-  if (success) {
-    return (
-      <div>
-        <h1>회원가입 완료</h1>
-        <p>회원가입이 완료되었습니다. 로그인 페이지로 이동합니다.</p>
-        <p>잠시만 기다려주세요...</p>
-      </div>
-    );
-  }
-
   return (
-    <div>
-      <h1>회원가입</h1>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="username">Username:</label>
-          <input
-            type="text"
-            id="username"
-            name="username"
-            value={formData.username}
-            onChange={handleChange}
-            required
-          />
+    <div className="auth-container">
+      <div className="register-card">
+        <div className="auth-form-container">
+          <h1 className="register-title">회원가입</h1>
+          
+          {error && <div className="error-message">{error}</div>}
+
+          <form onSubmit={handleSubmit} className="auth-form">
+            <div className="input-group">
+              <input
+                type="text"
+                name="username"
+                value={formData.username}
+                onChange={handleChange}
+                placeholder="사원번호"
+                required
+                className="auth-input"
+              />
+            </div>
+            <div className="input-group">
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="이메일"
+                required
+                className="auth-input"
+              />
+            </div>
+            <div className="input-group">
+              <input
+                type="text"
+                name="nickname"
+                value={formData.nickname}
+                onChange={handleChange}
+                placeholder="닉네임"
+                required
+                className="auth-input"
+              />
+            </div>
+            <div className="input-group">
+              <input
+                type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="암호"
+                required
+                className="auth-input"
+              />
+            </div>
+            <div className="input-group">
+              <input
+                type="password"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                placeholder="암호 확인"
+                required
+                className="auth-input"
+              />
+            </div>
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="auth-button"
+            >
+              {loading ? '가입 중...' : '회원가입'}
+            </button>
+          </form>
+
+          <div className="auth-footer">
+            <p>
+              이미 계정이 있으신가요? 
+              <Link to="/login" className="link">출근하기</Link>
+            </p>
+          </div>
         </div>
-        <div>
-          <label htmlFor="email">Email:</label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-          />
-        </div>
-        <div>
-          <label htmlFor="nickname">Nickname:</label>
-          <input
-            type="text"
-            id="nickname"
-            name="nickname"
-            value={formData.nickname}
-            onChange={handleChange}
-            required
-          />
-        </div>
-        <div>
-          <label htmlFor="password">Password:</label>
-          <input
-            type="password"
-            id="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-          />
-        </div>
-        <div>
-          <label htmlFor="confirmPassword">Confirm Password:</label>
-          <input
-            type="password"
-            id="confirmPassword"
-            name="confirmPassword"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-            required
-          />
-        </div>
-        <button type="submit" disabled={loading}>
-          {loading ? '회원가입 중...' : '회원가입'}
-        </button>
-      </form>
-      <p>
-        이미 계정이 있으신가요? <Link to="/login">로그인</Link>
-      </p>
+      </div>
     </div>
   );
 };

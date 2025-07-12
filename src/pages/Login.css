@@ -1,0 +1,222 @@
+/* 
+  파일 이름: Login.css
+  설명: 아기자기한 컨셉의 로그인 페이지 스타일
+*/
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+@keyframes caffeine-jitter {
+  0%, 100% { transform: skewX(0deg); }
+  25% { transform: skewX(-0.5deg); }
+  75% { transform: skewX(0.5deg); }
+}
+
+.auth-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #e3f2fd 0%, #f0f8ff 100%); /* 하늘-연하늘 그라데이션 */
+  font-family: 'Lekoche', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  padding: 20px;
+}
+
+.auth-card {
+  display: flex;
+  width: 950px;
+  height: 650px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  border-radius: 25px;
+  overflow: hidden;
+  border: 5px solid white;
+  background-color: white;
+  animation: fadeIn 1s ease-in-out;
+}
+
+.auth-illustration {
+  flex-basis: 60%;
+  background: url('/images/login-bg.png') no-repeat center center;
+  background-size: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-form-section {
+  flex-basis: 40%;
+  background-color: #fafdff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.auth-form-container {
+  width: 100%;
+  max-width: 380px;
+  text-align: center;
+}
+
+.auth-title-image {
+  width: 100%;
+  max-width: 300px;
+  margin-bottom: 2.5rem;
+  animation: bounceIn 1.2s ease;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.auth-form.error .input-group {
+  animation: shake 0.5s ease-in-out;
+}
+
+.input-group {
+  position: relative;
+}
+
+.auth-input {
+  width: 100%;
+  padding: 16px 20px;
+  border: 2px solid #e0eafc;
+  border-radius: 15px;
+  font-size: 1rem;
+  background-color: #f7faff;
+  text-align: left;
+  transition: all 0.3s ease;
+  font-family: 'Lekoche', sans-serif;
+}
+
+.auth-input::placeholder {
+    color: #a8b8d0;
+}
+
+.auth-input:focus {
+  outline: none;
+  border-color: #87ceeb;
+  background-color: white;
+  box-shadow: 0 0 0 4px rgba(135, 206, 235, 0.2);
+  transform: scale(1.02);
+}
+
+.auth-button {
+  padding: 18px;
+  border: none;
+  border-radius: 15px;
+  background: linear-gradient(45deg, #87ceeb, #5cacee);
+  color: white;
+  font-family: 'Lekoche', sans-serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 1rem;
+  box-shadow: 0 5px 20px rgba(92, 172, 238, 0.4);
+}
+
+.auth-button:hover:not(:disabled) {
+  transform: translateY(-4px) scale(1.03);
+  box-shadow: 0 8px 25px rgba(92, 172, 238, 0.5);
+  animation: caffeine-jitter 0.2s infinite;
+}
+
+.auth-button:disabled {
+  background: #d4eaf7;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.error-message {
+  color: #d9534f;
+  background-color: #fdf2f2;
+  border: 1px solid #fbc2c4;
+  padding: 12px;
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-shadow: none;
+}
+
+.auth-footer {
+  margin-top: 2rem;
+  font-size: 1rem;
+  color: #6a7891;
+  text-shadow: none;
+}
+
+.auth-footer .link {
+  color: #5cacee;
+  font-weight: bold;
+  text-decoration: none;
+  margin-left: 8px;
+  transition: all 0.3s ease;
+  text-shadow: none;
+}
+
+.auth-footer .link:hover {
+  color: #87ceeb;
+  text-decoration: underline;
+}
+
+@media (max-width: 950px) {
+  .auth-card {
+    flex-direction: column;
+    width: 95%;
+    max-width: 480px;
+    height: auto;
+  }
+
+  .auth-illustration {
+    display: none;
+  }
+
+  .auth-form-section {
+    flex-basis: 100%;
+    border-radius: 20px;
+    padding: 30px;
+  }
+}
