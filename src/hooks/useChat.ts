@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { apiService } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 
@@ -7,7 +7,7 @@ export const useChat = () => {
   const [error, setError] = useState<string | null>(null);
   const { accessToken } = useAuthStore();
 
-  const getChatHistory = async (roomId: string, page: number = 1, limit: number = 50) => {
+  const getChatHistory = useCallback(async (roomId: string, page: number = 1, limit: number = 50) => {
     if (!accessToken) throw new Error('인증이 필요합니다.');
     
     setLoading(true);
@@ -23,9 +23,9 @@ export const useChat = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [accessToken]);
 
-  const deleteChatHistory = async (roomId: string) => {
+  const deleteChatHistory = useCallback(async (roomId: string) => {
     if (!accessToken) throw new Error('인증이 필요합니다.');
     
     setLoading(true);
@@ -41,7 +41,7 @@ export const useChat = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [accessToken]);
 
   return {
     loading,

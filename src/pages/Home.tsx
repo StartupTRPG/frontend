@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useApi } from '../hooks/useApi';
 import { useAuthStore } from '../stores/authStore';
 import { RoomListResponse, RoomCreateRequest } from '../services/api';
-import { socketService } from '../services/socketService';
 
 
 const Home: React.FC = () => {
@@ -13,10 +12,6 @@ const Home: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [selectedRoom, setSelectedRoom] = useState<RoomListResponse | null>(null);
-  const [password, setPassword] = useState('');
-  const [passwordError, setPasswordError] = useState<string | null>(null);
   const { user } = useAuthStore();
   const { getRooms, createRoom } = useApi();
 
@@ -26,7 +21,6 @@ const Home: React.FC = () => {
     description: '',
     max_players: 4, // 6에서 4로 변경
     visibility: 'public',
-    password: '',
     game_settings: {},
   });
 
@@ -54,26 +48,24 @@ const Home: React.FC = () => {
       return;
     }
 
-    // 비밀번호 검증 제거 (선택사항이므로)
-    // if (!createForm.password.trim()) {
-    //   alert('방 비밀번호를 입력해주세요.');
-    //   return;
-    // }
-
     try {
       setCreateLoading(true);
-      await createRoom(createForm);
-      setShowCreateModal(false);
-      setCreateForm({
-        title: '',
-        description: '',
-        max_players: 4, // 6에서 4로 변경
-        visibility: 'public',
-        password: '',
-        game_settings: {},
-      });
-      // 방 생성 후 목록 새로고침
-      await fetchRooms();
+      const response = await createRoom(createForm);
+      
+      // 방 생성 성공 후 생성된 방으로 바로 이동
+      if (response && response.data && response.data.id) {
+        setShowCreateModal(false);
+        setCreateForm({
+          title: '',
+          description: '',
+          max_players: 4, // 6에서 4로 변경
+          visibility: 'public',
+          game_settings: {},
+        });
+        
+        // 소켓으로 방 입장 요청 (호스트이므로 비밀번호 없이)
+        joinRoomViaSocket(response.data.id);
+      }
     } catch (error) {
       alert(error instanceof Error ? error.message : '방 생성에 실패했습니다.');
     } finally {
@@ -82,58 +74,20 @@ const Home: React.FC = () => {
   };
 
   const handleJoinRoom = (room: RoomListResponse) => {
+    // 비밀번호가 있는 경우 모달 표시
+    // 비밀번호가 없는 경우 바로 소켓으로 입장 요청
     if (room.has_password) {
-      // 비밀번호가 있는 경우 모달 표시
-      setSelectedRoom(room);
-      setShowPasswordModal(true);
-      setPassword('');
-      setPasswordError(null);
+      alert('비밀번호가 필요한 방입니다.');
+      // 비밀번호 입력 모달 표시 로직 제거
     } else {
-      // 비밀번호가 없는 경우 바로 소켓으로 입장 요청
       joinRoomViaSocket(room.id);
     }
   };
 
-  const joinRoomViaSocket = (roomId: string, password?: string) => {
-    try {
-      // 타입 안전한 방 입장
-      socketService.joinRoom(roomId, password);
-      
-      // 페이지 이동
-      navigate(`/room/${roomId}`);
-    } catch (error) {
-      console.error('방 입장 실패:', error);
-      alert('방 입장에 실패했습니다.');
-    }
+  const joinRoomViaSocket = (roomId: string) => {
+    navigate(`/room/${roomId}`);
   };
 
-  const handlePasswordSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!selectedRoom || !password.trim()) {
-      setPasswordError('비밀번호를 입력해주세요.');
-      return;
-    }
-
-    try {
-      // 소켓으로 비밀번호와 함께 방 입장 요청
-      joinRoomViaSocket(selectedRoom.id, password);
-      
-      setShowPasswordModal(false);
-      setSelectedRoom(null);
-      setPassword('');
-      setPasswordError(null);
-    } catch (error) {
-      setPasswordError('방 입장 중 오류가 발생했습니다.');
-    }
-  };
-
-  const handlePasswordCancel = () => {
-    setShowPasswordModal(false);
-    setSelectedRoom(null);
-    setPassword('');
-    setPasswordError(null);
-  };
 
   const getStatusText = (status: string) => {
     switch (status) {
@@ -290,7 +244,8 @@ const Home: React.FC = () => {
                 </select>
               </div>
 
-              <div style={{ marginBottom: '20px' }}>
+              {/* 비밀번호 입력란 제거 */}
+              {/* <div style={{ marginBottom: '20px' }}>
                 <label htmlFor="password" style={{ display: 'block', marginBottom: '5px' }}>
                   방 비밀번호 (선택사항)
                 </label>
@@ -302,7 +257,7 @@ const Home: React.FC = () => {
                   placeholder="비밀번호를 입력하면 비공개 방이 됩니다"
                   style={{ width: '100%', padding: '8px', border: '1px solid #ddd' }}
                 />
-              </div>
+              </div> */}
 
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
                 <button
@@ -336,8 +291,8 @@ const Home: React.FC = () => {
         </div>
       )}
 
-      {/* 비밀번호 입력 모달 */}
-      {showPasswordModal && selectedRoom && (
+      {/* 비밀번호 입력 모달 제거 */}
+      {/* {showPasswordModal && selectedRoom && (
         <div style={{
           position: 'fixed',
           top: 0,
@@ -410,7 +365,7 @@ const Home: React.FC = () => {
             </form>
           </div>
         </div>
-      )}
+      )} */}
     </div>
   );
 };

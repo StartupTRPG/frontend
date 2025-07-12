@@ -8,6 +8,7 @@ export interface ChatMessageResponse {
   message: string;
   timestamp: string;
   encrypted: boolean;
+  chat_category?: 'lobby' | 'game' | 'general';
 }
 
 export interface RoomChatHistoryResponse {
@@ -16,4 +17,63 @@ export interface RoomChatHistoryResponse {
   total_count: number;
   page: number;
   limit: number;
+  chat_category?: 'lobby' | 'game' | 'general';
+}
+
+export interface ChatHistoryRequest {
+  room_id: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface ChatMessageRequest {
+  room_id: string;
+  message: string;
+  message_type?: 'text' | 'system';
+}
+
+export interface SystemMessageResponse {
+  id: string;
+  user_id: string;
+  username: string;
+  display_name: string;
+  message: string;
+  timestamp: string;
+  message_type: 'system';
+  chat_category?: 'lobby' | 'game' | 'general';
+}
+
+export interface UserJoinedResponse {
+  user_id: string;
+  username: string;
+  display_name: string;
+  message: string;
+  timestamp: string;
+}
+
+export interface UserLeftResponse {
+  user_id: string;
+  username: string;
+  display_name: string;
+  message: string;
+  timestamp: string;
+}
+
+export interface RoomUsersResponse {
+  room_id: string;
+  users: Array<{
+    user_id: string;
+    username: string;
+    display_name: string;
+    role: 'host' | 'player' | 'observer';
+    is_host: boolean;
+    joined_at: string;
+  }>;
+}
+
+export interface GameEventResponse {
+  room_id: string;
+  event: string;
+  message: string;
+  timestamp: string;
 }

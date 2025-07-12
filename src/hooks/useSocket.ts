@@ -1,52 +1,119 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../stores/authStore';
-import { socketService } from '../services/socketService';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { io, Socket } from 'socket.io-client';
+import { SocketEventType, UserInfo } from '../types/socket';
 
-export const useSocket = () => {
-  const { isAuthenticated, accessToken, logout } = useAuthStore();
-  const [isConnecting, setIsConnecting] = useState(false);
-  const navigate = useNavigate();
+interface SocketState {
+  isConnected: boolean;
+  userInfo: UserInfo | null;
+  currentRoom: string | null;
+  error: string | null;
+}
+
+interface UseSocketOptions {
+  token: string;
+  onConnect?: (userInfo: UserInfo) => void;
+  onDisconnect?: () => void;
+  onError?: (error: string) => void;
+}
+
+export const useSocket = (options: UseSocketOptions) => {
+  const { token, onConnect, onDisconnect, onError } = options;
+  const socketRef = useRef<Socket | null>(null);
+  const [state, setState] = useState<SocketState>({
+    isConnected: false,
+    userInfo: null,
+    currentRoom: null,
+    error: null,
+  });
+
+  // 소켓 연결
+  const connect = useCallback(() => {
+    if (socketRef.current?.connected) return;
+    const socket = io('http://localhost:8000', {
+      auth: { token },
+      transports: ['websocket'],
+    });
+
+    socket.on(SocketEventType.CONNECT_SUCCESS, (data: UserInfo) => {
+      setState(prev => ({
+        ...prev,
+        isConnected: true,
+        userInfo: data,
+        error: null,
+      }));
+      onConnect?.(data);
+    });
+
+    socket.on('connect_failed', (data: { message: string }) => {
+      setState(prev => ({
+        ...prev,
+        isConnected: false,
+        error: data.message,
+      }));
+      onError?.(data.message);
+    });
+
+    socket.on(SocketEventType.ERROR, (data: { message: string }) => {
+      setState(prev => ({
+        ...prev,
+        error: data.message,
+      }));
+      onError?.(data.message);
+    });
+
+    socket.on(SocketEventType.DISCONNECT, () => {
+      setState(prev => ({
+        ...prev,
+        isConnected: false,
+        userInfo: null,
+        currentRoom: null,
+      }));
+      onDisconnect?.();
+    });
+
+    socketRef.current = socket;
+  }, [token, onConnect, onDisconnect, onError]);
+
+  // 소켓 연결 해제
+  const disconnect = useCallback(() => {
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+  }, []);
+
+  // 방 입장
+  const joinRoom = useCallback((roomId: string, password?: string) => {
+    if (!socketRef.current?.connected) throw new Error('Socket is not connected');
+    return new Promise<void>((resolve, reject) => {
+      socketRef.current!.emit(SocketEventType.JOIN_ROOM, { room_id: roomId, password }, (response: any) => {
+        if (response?.error) reject(new Error(response.error));
+        else {
+          setState(prev => ({ ...prev, currentRoom: roomId }));
+          resolve();
+        }
+      });
+    });
+  }, []);
+
+  // 방 나가기
+  const leaveRoom = useCallback(() => {
+    if (!socketRef.current?.connected || !state.currentRoom) return;
+    socketRef.current.emit(SocketEventType.LEAVE_ROOM, { room_id: state.currentRoom });
+    setState(prev => ({ ...prev, currentRoom: null }));
+  }, [state.currentRoom]);
 
   useEffect(() => {
-    if (isAuthenticated && accessToken) {
-      setIsConnecting(true);
-      const socket = socketService.connect(accessToken);
+    connect();
+    return () => disconnect();
+  }, [connect, disconnect]);
 
-      // 인증 성공
-      const onSuccess = (data: any) => {
-        setIsConnecting(false);
-        // 필요시 상태 업데이트
-      };
-
-      // 인증 실패
-      const onFailed = (data: any) => {
-        setIsConnecting(false);
-        alert(data.message);
-        socketService.disconnect();
-        logout();
-        navigate('/login');
-      };
-
-      socket.on('connect_success', onSuccess);
-      socket.on('connect_failed', onFailed);
-
-      // 기타 공통 이벤트 리스너 등록 (예: disconnect, error 등)
-      socket.on('disconnect', (reason) => {
-        // 필요시 처리
-      });
-
-      return () => {
-        socket.off('connect_success', onSuccess);
-        socket.off('connect_failed', onFailed);
-        socket.off('disconnect');
-        socketService.disconnect();
-      };
-    } else {
-      socketService.disconnect();
-      setIsConnecting(false);
-    }
-  }, [isAuthenticated, accessToken, logout, navigate]);
-
-  return { socketService, isConnecting };
-};
+  return {
+    socket: socketRef.current,
+    ...state,
+    connect,
+    disconnect,
+    joinRoom,
+    leaveRoom,
+  };
+}; 

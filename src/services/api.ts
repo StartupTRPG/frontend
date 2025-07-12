@@ -1,3 +1,5 @@
+import { handleUnauthorizedError, isUnauthorizedError } from '../utils/authUtils';
+
 // API 명세에 맞춘 타입 정의
 export interface LoginCredentials {
   username: string;
@@ -57,7 +59,7 @@ export interface AuthState {
   error: string | null;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 export interface ApiResponse<T> {
   data: T;
@@ -184,7 +186,6 @@ export interface RoomCreateRequest {
   description?: string;
   max_players?: number;
   visibility?: 'public' | 'private';
-  password: string;
   game_settings?: Record<string, any>;
 }
 
@@ -272,12 +273,25 @@ class ApiService {
       const data = await response.json();
       
       if (!response.ok) {
+        // 401 에러인 경우 인증 데이터 정리 및 로그인 페이지 리디렉션
+        if (response.status === 401) {
+          handleUnauthorizedError();
+          throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.');
+        }
+        
         throw new Error(data.message || 'API 요청 실패');
       }
       
       return data;
     } catch (error) {
       console.error('API 요청 오류:', error);
+      
+      // 401 에러인지 확인하고 처리
+      if (isUnauthorizedError(error)) {
+        handleUnauthorizedError();
+        throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.');
+      }
+      
       throw error;
     }
   }
@@ -294,23 +308,104 @@ class ApiService {
 
   // Auth APIs
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
-    return this.request<LoginResponse>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(credentials),
-    });
+    const url = `${API_BASE_URL}/auth/login`;
+    
+    const defaultOptions: RequestInit = {
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    };
+
+    try {
+      const response = await fetch(url, { 
+        ...defaultOptions, 
+        method: 'POST',
+        body: JSON.stringify(credentials),
+      });
+      const data = await response.json();
+      
+      if (!response.ok) {
+        // 로그인 시에는 401 에러를 일반적인 로그인 실패로 처리
+        throw new Error(data.message || '로그인에 실패했습니다.');
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('로그인 요청 오류:', error);
+      throw error;
+    }
   }
 
   async register(credentials: RegisterCredentials): Promise<RegisterResponse> {
-    return this.request<RegisterResponse>('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify(credentials),
-    });
+    const url = `${API_BASE_URL}/auth/register`;
+    
+    const defaultOptions: RequestInit = {
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    };
+
+    try {
+      const response = await fetch(url, { 
+        ...defaultOptions, 
+        method: 'POST',
+        body: JSON.stringify(credentials),
+      });
+      const data = await response.json();
+      
+      if (!response.ok) {
+        // 회원가입 시에는 401 에러를 일반적인 회원가입 실패로 처리
+        throw new Error(data.message || '회원가입에 실패했습니다.');
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('회원가입 요청 오류:', error);
+      throw error;
+    }
   }
 
   async refreshToken(): Promise<RefreshResponse> {
-    return this.request<RefreshResponse>('/auth/refresh', {
-      method: 'POST',
-    });
+    const url = `${API_BASE_URL}/auth/refresh`;
+    
+    const defaultOptions: RequestInit = {
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    };
+
+    try {
+      const response = await fetch(url, { 
+        ...defaultOptions, 
+        method: 'POST',
+      });
+      const data = await response.json();
+      
+      if (!response.ok) {
+        // 토큰 갱신 시 401 에러는 인증 만료를 의미
+        if (response.status === 401) {
+          handleUnauthorizedError();
+          throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.');
+        }
+        
+        throw new Error(data.message || '토큰 갱신에 실패했습니다.');
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('토큰 갱신 요청 오류:', error);
+      
+      // 401 에러인지 확인하고 처리
+      if (isUnauthorizedError(error)) {
+        handleUnauthorizedError();
+        throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.');
+      }
+      
+      throw error;
+    }
   }
 
   async getCurrentUser(accessToken: string): Promise<UserResponse> {
@@ -320,9 +415,34 @@ class ApiService {
   }
 
   async logout(): Promise<LogoutResponse> {
-    return this.request<LogoutResponse>('/auth/logout', {
-      method: 'POST',
-    });
+    const url = `${API_BASE_URL}/auth/logout`;
+    
+    const defaultOptions: RequestInit = {
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    };
+
+    try {
+      const response = await fetch(url, { 
+        ...defaultOptions, 
+        method: 'POST',
+      });
+      const data = await response.json();
+      
+      if (!response.ok) {
+        // 로그아웃 시에는 401 에러를 무시하고 정상 처리
+        console.warn('로그아웃 요청 실패:', data.message);
+        return data; // 에러가 있어도 로그아웃은 성공으로 처리
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('로그아웃 요청 오류:', error);
+      // 로그아웃 실패 시에도 클라이언트에서는 로그아웃 처리
+      throw error;
+    }
   }
 
   async deleteAccount(accessToken: string): Promise<DeleteAccountResponse> {
@@ -449,7 +569,22 @@ class ApiService {
 
   // Chat APIs
   async getChatHistory(accessToken: string, roomId: string, page: number = 1, limit: number = 50): Promise<GetChatHistoryResponse> {
-    return this.request<GetChatHistoryResponse>(`/chat/room/${roomId}/history?page=${page}&limit=${limit}`, 
+    console.log(`[API] getChatHistory 호출: roomId=${roomId}, page=${page}, limit=${limit}`);
+    const response = await this.request<GetChatHistoryResponse>(`/chat/room/${roomId}/history?page=${page}&limit=${limit}`, 
+      this.withAuthHeader({ method: 'GET' }, accessToken)
+    );
+    console.log(`[API] getChatHistory 응답: ${response.data.messages.length}개 메시지`);
+    return response;
+  }
+
+  async getLobbyChatHistory(accessToken: string, page: number = 1, limit: number = 50): Promise<GetChatHistoryResponse> {
+    return this.request<GetChatHistoryResponse>(`/rooms/chat/lobby?page=${page}&limit=${limit}`, 
+      this.withAuthHeader({ method: 'GET' }, accessToken)
+    );
+  }
+
+  async getGameChatHistory(accessToken: string, page: number = 1, limit: number = 50): Promise<GetChatHistoryResponse> {
+    return this.request<GetChatHistoryResponse>(`/rooms/chat/game?page=${page}&limit=${limit}`, 
       this.withAuthHeader({ method: 'GET' }, accessToken)
     );
   }

@@ -1,6 +1,7 @@
 import { useAuthStore } from '../stores/authStore';
 import { apiService } from '../services/api';
 import { LoginCredentials, RegisterCredentials } from '../services/api';
+import { handleUnauthorizedError } from '../utils/authUtils';
 
 export const useAuth = () => {
   const {
@@ -71,7 +72,12 @@ export const useAuth = () => {
       updateAccessToken(response.data.access_token);
       return response.data.access_token;
     } catch (error) {
-      storeLogout(); // refresh 실패 시 로그아웃
+      // 401 에러인 경우 인증 데이터 정리 및 로그인 페이지 리디렉션
+      if (error instanceof Error && error.message.includes('인증이 만료되었습니다')) {
+        handleUnauthorizedError();
+      } else {
+        storeLogout(); // 다른 에러의 경우 로그아웃만
+      }
       throw error;
     }
   };
