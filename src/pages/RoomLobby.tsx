@@ -92,15 +92,11 @@ const RoomLobby: React.FC = () => {
 
   const handleLeaveRoom = () => {
     if (!roomId) return;
-    
     try {
-      // 소켓 연결 상태 확인
       if (socket?.connected) {
-        leaveRoom();
-      } else {
-        // 소켓이 연결되지 않은 경우 바로 홈으로 이동
-        navigate('/home');
+        socket.emit(SocketEventType.LEAVE_ROOM, { room_id: roomId });
       }
+      navigate('/home');
     } catch (error) {
       console.error('방 퇴장 실패:', error);
       navigate('/home');
