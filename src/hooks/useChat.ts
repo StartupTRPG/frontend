@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { apiService } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
-import { ChatMessageResponse } from '../types/chat';
 
 export const useChat = () => {
   const [loading, setLoading] = useState(false);

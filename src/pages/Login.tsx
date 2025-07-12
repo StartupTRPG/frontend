@@ -19,9 +19,7 @@ const Login: React.FC = () => {
 
   // 로그인 성공 시 홈페이지로 리다이렉트
   useEffect(() => {
-    console.log('isAuthenticated changed:', isAuthenticated); // 디버깅용
     if (isAuthenticated) {
-      console.log('Navigating to /home'); // 디버깅용
       navigate('/home');
     }
   }, [isAuthenticated, navigate]);

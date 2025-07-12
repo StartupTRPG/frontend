@@ -1,6 +1,7 @@
 import { useAuthStore } from '../stores/authStore';
 import { apiService } from '../services/api';
 import { useAuth } from './useAuth';
+import { UserProfileUpdate, UserProfileCreate } from '../services/api';
 
 export const useApi = () => {
   const { accessToken } = useAuthStore();
@@ -26,8 +27,31 @@ export const useApi = () => {
   };
 
   return {
-    getProfile: () => authenticatedRequest(apiService.getProfile),
-    updateProfile: (userData: Partial<User>) => 
-      authenticatedRequest(token => apiService.updateProfile(token, userData)),
+    getMyProfile: () => authenticatedRequest(token => apiService.getMyProfile(token)),
+    updateMyProfile: (userData: UserProfileUpdate) => 
+      authenticatedRequest(token => apiService.updateMyProfile(token, userData)),
+    createProfile: (profileData: UserProfileCreate) =>
+      authenticatedRequest(token => apiService.createProfile(token, profileData)),
+    getUserProfile: (userId: string) =>
+      authenticatedRequest(token => apiService.getUserProfile(token, userId)),
+    searchProfiles: (query: string, limit?: number) =>
+      authenticatedRequest(token => apiService.searchProfiles(token, query, limit)),
+    getRooms: (params?: any) => authenticatedRequest(token => apiService.getRooms(token, params)),
+    getMyRooms: () => authenticatedRequest(token => apiService.getMyRooms(token)),
+    createRoom: (roomData: any) => 
+      authenticatedRequest(token => apiService.createRoom(token, roomData)),
+    getRoom: (roomId: string) => authenticatedRequest(token => apiService.getRoom(token, roomId)),
+    updateRoom: (roomId: string, roomData: any) =>
+      authenticatedRequest(token => apiService.updateRoom(token, roomId, roomData)),
+    deleteRoom: (roomId: string) =>
+      authenticatedRequest(token => apiService.deleteRoom(token, roomId)),
+    startGame: (roomId: string) =>
+      authenticatedRequest(token => apiService.startGame(token, roomId)),
+    endGame: (roomId: string) =>
+      authenticatedRequest(token => apiService.endGame(token, roomId)),
+    getChatHistory: (roomId: string, page?: number, limit?: number) =>
+      authenticatedRequest(token => apiService.getChatHistory(token, roomId, page, limit)),
+    deleteChatHistory: (roomId: string) =>
+      authenticatedRequest(token => apiService.deleteChatHistory(token, roomId)),
   };
 }; 

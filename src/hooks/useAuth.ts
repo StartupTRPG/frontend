@@ -1,7 +1,6 @@
 import { useAuthStore } from '../stores/authStore';
 import { apiService } from '../services/api';
 import { LoginCredentials, RegisterCredentials } from '../services/api';
-import { useEffect, useRef } from 'react';
 
 export const useAuth = () => {
   const {

@@ -1,27 +1,31 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Home from './pages/Home';
+import RoomLobby from './pages/RoomLobby';
 import ProtectedRoute from './components/ProtectedRoute';
+import Loading from './components/common/Loading';
+import { useSocket } from './hooks/useSocket';
 import { useAuthStore } from './stores/authStore';
-
-// 임시 홈 페이지 컴포넌트
-const Home: React.FC = () => {
-  const { user, logout } = useAuthStore();
-  
-  return (
-    <div>
-      <h1>홈페이지</h1>
-      <p>환영합니다, {user?.nickname}님!</p>
-      <button onClick={logout}>로그아웃</button>
-    </div>
-  );
-};
 
 function App() {
   return (
     <Router>
+      <AppWithSocket />
+    </Router>
+  );
+}
+
+function AppWithSocket() {
+  const { isAuthenticated } = useAuthStore();
+  const { isConnecting } = useSocket();
+  const showLoading = isAuthenticated && isConnecting;
+
+  return (
+    <>
+      {showLoading && <Loading message="소켓 연결 중..." />}
       <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<Navigate to="/home" replace />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route 
@@ -32,8 +36,16 @@ function App() {
             </ProtectedRoute>
           } 
         />
+        <Route 
+          path="/room/:roomId" 
+          element={
+            <ProtectedRoute>
+              <RoomLobby />
+            </ProtectedRoute>
+          } 
+        />
       </Routes>
-    </Router>
+    </>
   );
 }
 
