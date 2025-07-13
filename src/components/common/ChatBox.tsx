@@ -2,9 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Socket } from 'socket.io-client';
 import { SocketEventType } from '../../types/socket';
 import { UserProfileResponse } from '../../services/api';
-import { useSocket } from '../../hooks/useSocket';
 import { useApi } from '../../hooks/useApi';
-import { useAuthStore } from '../../stores/authStore';
 
 interface ChatBoxProps {
   roomId: string;
@@ -12,43 +10,27 @@ interface ChatBoxProps {
   profile: UserProfileResponse | null;
   chatType: 'lobby' | 'game';
   initialMessages?: any[];
+  onSendLobbyMessage?: (roomId: string, message: string) => void;
+  onSendGameMessage?: (roomId: string, message: string) => void;
 }
 
-const ChatBox: React.FC<ChatBoxProps> = ({ roomId, socket, profile, chatType = 'lobby', initialMessages = [] }) => {
+const ChatBox: React.FC<ChatBoxProps> = ({ 
+  roomId, 
+  socket, 
+  profile, 
+  chatType = 'lobby', 
+  initialMessages = [],
+  onSendLobbyMessage,
+  onSendGameMessage
+}) => {
   const [messages, setMessages] = useState<any[]>(initialMessages);
   const [input, setInput] = useState('');
   const [isComposing, setIsComposing] = useState(false);
   const { getChatHistory } = useApi();
-  const { sendLobbyMessage, sendGameMessage } = useSocket({
-    token: useAuthStore.getState().accessToken || '',
-  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // 채팅 기록 불러오기
-  const loadChatHistory = useCallback(async () => {
-    // 게임 채팅에서는 히스토리를 로드하지 않음
-    if (chatType === 'game') {
-      console.log('[ChatBox] 게임 채팅: 히스토리 로드 건너뜀');
-      return;
-    }
-    
-    if (initialMessages.length > 0) {
-      console.log('[ChatBox] 초기 메시지 사용:', initialMessages.length);
-      return;
-    }
-    
-    try {
-      const history = await getChatHistory(roomId);
-      if (Array.isArray(history)) {
-        // 채팅 타입에 따라 히스토리 필터링
-        const filteredHistory = history.filter(msg => msg.message_type === chatType);
-        console.log(`[ChatBox] 필터링된 히스토리: ${filteredHistory.length}개 (${chatType})`);
-        setMessages(filteredHistory);
-      }
-    } catch (error) {
-      console.error('채팅 기록 로드 실패:', error);
-    }
-  }, [roomId, getChatHistory, initialMessages.length, chatType]);
+
 
   // 소켓 메시지 핸들러
   const handleChatMessage = useCallback((msg: any) => {
@@ -73,14 +55,15 @@ const ChatBox: React.FC<ChatBoxProps> = ({ roomId, socket, profile, chatType = '
 
   // 메시지 전송
   const sendMessage = useCallback(() => {
-    console.log('[ChatBox] 메시지 전송 시도:', { input: input.trim(), socket: !!socket, profile: !!profile, chatType });
+    const currentInput = inputRef.current?.value || '';
+    console.log('[ChatBox] 메시지 전송 시도:', { input: currentInput.trim(), socket: !!socket, profile: !!profile, chatType });
     
-    if (!input.trim() || !profile) {
+    if (!currentInput.trim() || !profile) {
       console.log('[ChatBox] 메시지 전송 실패: 조건 불만족');
       return;
     }
     
-    const messageText = input.trim();
+    const messageText = currentInput.trim();
     console.log('[ChatBox] 메시지 데이터:', { roomId, messageText, chatType });
 
     // 낙관적 업데이트 제거 - 서버에서 broadcast로 받은 메시지만 표시
@@ -89,12 +72,16 @@ const ChatBox: React.FC<ChatBoxProps> = ({ roomId, socket, profile, chatType = '
     // 채팅 타입에 따라 다른 메서드 사용
     if (chatType === 'game') {
       console.log('[ChatBox] 게임 메시지 전송');
-      sendGameMessage(roomId, messageText);
+      if (onSendGameMessage) {
+        onSendGameMessage(roomId, messageText);
+      }
     } else {
       console.log('[ChatBox] 로비 메시지 전송');
-      sendLobbyMessage(roomId, messageText);
+      if (onSendLobbyMessage) {
+        onSendLobbyMessage(roomId, messageText);
+      }
     }
-  }, [input, profile, roomId, chatType, sendLobbyMessage, sendGameMessage]);
+  }, [profile, roomId, chatType, onSendLobbyMessage, onSendGameMessage]); // input 의존성 제거
 
   // 한글 조합 상태 핸들러
   const handleCompositionStart = useCallback(() => setIsComposing(true), []);
@@ -116,10 +103,36 @@ const ChatBox: React.FC<ChatBoxProps> = ({ roomId, socket, profile, chatType = '
     }
   }, [initialMessages, chatType]);
 
-  // 채팅 기록 불러오기
+  // 채팅 기록 불러오기 (한 번만 실행)
   useEffect(() => {
-    loadChatHistory();
-  }, [loadChatHistory]);
+    // 게임 채팅에서는 히스토리를 로드하지 않음
+    if (chatType === 'game') {
+      console.log('[ChatBox] 게임 채팅: 히스토리 로드 건너뜀');
+      return;
+    }
+    
+    if (initialMessages.length > 0) {
+      console.log('[ChatBox] 초기 메시지 사용:', initialMessages.length);
+      return;
+    }
+    
+    // 채팅 히스토리 로드
+    const fetchHistory = async () => {
+      try {
+        const history = await getChatHistory(roomId);
+        if (Array.isArray(history)) {
+          // 채팅 타입에 따라 히스토리 필터링
+          const filteredHistory = history.filter(msg => msg.message_type === chatType);
+          console.log(`[ChatBox] 필터링된 히스토리: ${filteredHistory.length}개 (${chatType})`);
+          setMessages(filteredHistory);
+        }
+      } catch (error) {
+        console.error('채팅 기록 로드 실패:', error);
+      }
+    };
+    
+    fetchHistory();
+  }, [roomId, chatType]); // roomId나 chatType이 변경될 때만 실행
 
   // 채팅 타입이 변경될 때 메시지 필터링
   useEffect(() => {
@@ -202,6 +215,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ roomId, socket, profile, chatType = '
       </div>
       <div style={{ display: 'flex', borderTop: '1px solid #eee', padding: 8, background: '#fafafa' }}>
         <input
+          ref={inputRef}
           type="text"
           value={input}
           onChange={e => setInput(e.target.value)}

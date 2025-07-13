@@ -7,6 +7,8 @@ import { useSocket } from '../hooks/useSocket';
 import ChatBox from '../components/common/ChatBox';
 import { SocketEventType } from '../types/socket';
 import { UserProfileResponse } from '../services/api';
+import useModal from '../hooks/useModal';
+import Modal from '../components/common/Modal';
 
 const RoomLobby: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
@@ -20,7 +22,9 @@ const RoomLobby: React.FC = () => {
     leaveRoom, 
     toggleReady, 
     startGame, 
-    finishGame 
+    finishGame,
+    sendLobbyMessage,
+    sendGameMessage
   } = useSocket({
     token: useAuthStore.getState().accessToken || '',
   });
@@ -38,6 +42,7 @@ const RoomLobby: React.FC = () => {
   const [chatHistory, setChatHistory] = useState<any[]>([]);
   const [gameStatus, setGameStatus] = useState<'waiting' | 'playing' | 'finished'>('waiting');
   const [chatType, setChatType] = useState<'lobby' | 'game'>('lobby');
+  const { modalState, showInfo, showError, hideModal } = useModal();
 
   // 프로필은 최초 1회만
   useEffect(() => {
@@ -164,7 +169,7 @@ const RoomLobby: React.FC = () => {
       // 방이 삭제된 경우 홈으로 이동
       if (error.message === 'Room has been deleted') {
         console.log('[RoomLobby] 방이 삭제됨, 홈으로 이동');
-        alert('방이 삭제되었습니다.');
+        showInfo('방이 삭제되었습니다.', '방 삭제');
         navigate('/home');
         return;
       }
@@ -249,7 +254,7 @@ const RoomLobby: React.FC = () => {
           }
         }
         
-        alert('방이 삭제되었습니다.');
+        showInfo('방이 삭제되었습니다.', '방 삭제');
         navigate('/home');
       }
     };
@@ -347,7 +352,7 @@ const RoomLobby: React.FC = () => {
         
         // 게임 페이지로 이동
         navigate(`/game/${roomId}`);
-        alert(`${data.host_display_name}님이 게임을 시작했습니다.`);
+        showInfo(`${data.host_display_name}님이 게임을 시작했습니다.`, '게임 시작');
       }
     };
 
@@ -389,7 +394,7 @@ const RoomLobby: React.FC = () => {
           setMyReadyState(false);
         }, 3000);
         
-        alert(`${data.host_display_name}님이 게임을 종료했습니다.`);
+        showInfo(`${data.host_display_name}님이 게임을 종료했습니다.`, '게임 종료');
       }
     };
 
@@ -442,7 +447,7 @@ const RoomLobby: React.FC = () => {
       console.log('[RoomLobby] FINISH_GAME 이벤트 전송 완료');
     } catch (error) {
       console.error('[RoomLobby] 게임 종료 실패:', error);
-      alert('게임 종료에 실패했습니다.');
+      showError('게임 종료에 실패했습니다.', '게임 종료 실패');
     }
   };
 
@@ -494,7 +499,9 @@ const RoomLobby: React.FC = () => {
             socket={socket} 
             profile={profile}
             chatType={chatType} 
-            initialMessages={chatHistory} 
+            initialMessages={chatHistory}
+            onSendLobbyMessage={sendLobbyMessage}
+            onSendGameMessage={sendGameMessage}
           />
         </div>
       </div>
@@ -575,6 +582,16 @@ const RoomLobby: React.FC = () => {
           </div>
         )}
       </div>
+      
+      {/* Modal */}
+      <Modal
+        isOpen={modalState.isOpen}
+        onClose={hideModal}
+        title={modalState.title}
+        message={modalState.message}
+        type={modalState.type}
+        showCloseButton={modalState.showCloseButton}
+      />
     </div>
   );
 };

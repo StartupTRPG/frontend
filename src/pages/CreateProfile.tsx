@@ -3,10 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useProfile } from '../hooks/useProfile';
 import { UserProfileCreate, UserProfileUpdate } from '../types/profile';
 import { UserProfileResponse } from '../services/api';
+import useModal from '../hooks/useModal';
+import Modal from '../components/common/Modal';
 
 const CreateProfile: React.FC = () => {
   const navigate = useNavigate();
   const { createProfile, updateMyProfile, getMyProfile, loading, error } = useProfile();
+  const { modalState, showError, showSuccess, hideModal } = useModal();
   const [isEditMode, setIsEditMode] = useState(false);
   const [isViewMode, setIsViewMode] = useState(true);
   const [profile, setProfile] = useState<UserProfileResponse | null>(null);
@@ -47,7 +50,7 @@ const CreateProfile: React.FC = () => {
     e.preventDefault();
     
     if (!formData.display_name.trim()) {
-      alert('표시명을 입력해주세요.');
+      showError('표시명을 입력해주세요.', '입력 오류');
       return;
     }
 
@@ -60,7 +63,7 @@ const CreateProfile: React.FC = () => {
           user_level: formData.user_level,
         };
         await updateMyProfile(updateData);
-        alert('프로필이 성공적으로 수정되었습니다!');
+        showSuccess('프로필이 성공적으로 수정되었습니다!', '수정 완료');
         setIsEditMode(false);
         setIsViewMode(true);
         // 프로필 다시 조회
@@ -71,7 +74,7 @@ const CreateProfile: React.FC = () => {
           ...formData,
           avatar_url: DEFAULT_AVATAR_URL,
         });
-        alert('프로필이 성공적으로 생성되었습니다!');
+        showSuccess('프로필이 성공적으로 생성되었습니다!', '생성 완료');
         navigate('/home');
       }
     } catch (error) {
@@ -299,6 +302,16 @@ const CreateProfile: React.FC = () => {
           </div>
         </form>
       )}
+      
+      {/* Modal */}
+      <Modal
+        isOpen={modalState.isOpen}
+        onClose={hideModal}
+        title={modalState.title}
+        message={modalState.message}
+        type={modalState.type}
+        showCloseButton={modalState.showCloseButton}
+      />
     </div>
   );
 };

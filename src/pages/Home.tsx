@@ -6,6 +6,8 @@ import { RoomListResponse, RoomCreateRequest, UserProfileResponse } from '../ser
 import { useProfile } from '../hooks/useProfile';
 import { SocketEventType } from '../types/socket';
 import { useSocket } from '../hooks/useSocket';
+import useModal from '../hooks/useModal';
+import Modal from '../components/common/Modal';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -24,6 +26,7 @@ const Home: React.FC = () => {
     token: useAuthStore.getState().accessToken || '',
   });
   const { getMyProfile } = useProfile();
+  const { modalState, showError, showWarning, hideModal } = useModal();
   const [profile, setProfile] = useState<UserProfileResponse | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -132,7 +135,7 @@ const Home: React.FC = () => {
       
       // 프로필이 없는 경우 프로필 생성 페이지로 이동
       if (error instanceof Error && error.message.includes('Profile not found')) {
-        alert('프로필이 없습니다. 프로필을 먼저 생성해주세요.');
+        showWarning('프로필이 없습니다. 프로필을 먼저 생성해주세요.', '프로필 필요');
         navigate('/create-profile');
         return;
       }
@@ -145,7 +148,7 @@ const Home: React.FC = () => {
     e.preventDefault();
     
     if (!createForm.title.trim()) {
-      alert('방 제목을 입력해주세요.');
+      showError('방 제목을 입력해주세요.', '입력 오류');
       return;
     }
 
@@ -168,7 +171,7 @@ const Home: React.FC = () => {
         joinRoomViaSocket(response.data.id);
       }
     } catch (error) {
-      alert(error instanceof Error ? error.message : '방 생성에 실패했습니다.');
+      showError(error instanceof Error ? error.message : '방 생성에 실패했습니다.', '방 생성 실패');
     } finally {
       setCreateLoading(false);
     }
@@ -419,6 +422,16 @@ const Home: React.FC = () => {
           </div>
         </div>
       )}
+      
+      {/* Modal */}
+      <Modal
+        isOpen={modalState.isOpen}
+        onClose={hideModal}
+        title={modalState.title}
+        message={modalState.message}
+        type={modalState.type}
+        showCloseButton={modalState.showCloseButton}
+      />
     </div>
   );
 };

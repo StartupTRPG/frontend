@@ -7,6 +7,8 @@ import { useSocket } from '../hooks/useSocket';
 import ChatBox from '../components/common/ChatBox';
 import { SocketEventType } from '../types/socket';
 import { UserProfileResponse } from '../services/api';
+import useModal from '../hooks/useModal';
+import Modal from '../components/common/Modal';
 
 const GamePage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
@@ -18,7 +20,8 @@ const GamePage: React.FC = () => {
     currentRoom,
     joinRoom, 
     leaveRoom, 
-    finishGame 
+    finishGame,
+    sendGameMessage
   } = useSocket({
     token: useAuthStore.getState().accessToken || '',
   });
@@ -30,6 +33,7 @@ const GamePage: React.FC = () => {
   const [room, setRoom] = useState<any>(null);
   const [profile, setProfile] = useState<UserProfileResponse | null>(null);
   const [chatHistory, setChatHistory] = useState<any[]>([]);
+  const { modalState, showInfo, showError, hideModal } = useModal();
 
   // 프로필은 최초 1회만
   useEffect(() => {
@@ -94,7 +98,7 @@ const GamePage: React.FC = () => {
       // 방이 삭제된 경우 홈으로 이동
       if (error.message === 'Room has been deleted') {
         console.log('[GamePage] 방이 삭제됨, 홈으로 이동');
-        alert('방이 삭제되었습니다.');
+        showInfo('방이 삭제되었습니다.', '방 삭제');
         navigate('/home');
         return;
       }
@@ -175,7 +179,7 @@ const GamePage: React.FC = () => {
       console.log('[GamePage] FINISH_GAME 이벤트 수신:', data);
       if (data.room_id === roomId) {
         console.log('[GamePage] 게임 종료됨:', data);
-        alert(`${data.host_display_name}님이 게임을 종료했습니다.`);
+        showInfo(`${data.host_display_name}님이 게임을 종료했습니다.`, '게임 종료');
         navigate(`/room/${roomId}`); // 로비로 돌아가기
       } else {
         console.log('[GamePage] 다른 방의 게임 종료 이벤트 무시:', data.room_id, '!=', roomId);
@@ -210,7 +214,7 @@ const GamePage: React.FC = () => {
           }
         }
         
-        alert('방이 삭제되었습니다.');
+        showInfo('방이 삭제되었습니다.', '방 삭제');
         navigate('/home');
       }
     };
@@ -244,7 +248,7 @@ const GamePage: React.FC = () => {
       console.log('[GamePage] FINISH_GAME 이벤트 전송 완료');
     } catch (error) {
       console.error('[GamePage] 게임 종료 실패:', error);
-      alert('게임 종료에 실패했습니다.');
+      showError('게임 종료에 실패했습니다.', '게임 종료 실패');
     }
   };
 
@@ -293,7 +297,8 @@ const GamePage: React.FC = () => {
             socket={socket} 
             profile={profile}
             chatType="game" 
-            initialMessages={[]} 
+            initialMessages={[]}
+            onSendGameMessage={sendGameMessage}
           />
         </div>
       </div>
@@ -325,6 +330,16 @@ const GamePage: React.FC = () => {
           </div>
         )}
       </div>
+      
+      {/* Modal */}
+      <Modal
+        isOpen={modalState.isOpen}
+        onClose={hideModal}
+        title={modalState.title}
+        message={modalState.message}
+        type={modalState.type}
+        showCloseButton={modalState.showCloseButton}
+      />
     </div>
   );
 };
