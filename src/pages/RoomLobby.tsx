@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApi } from '../hooks/useApi';
 import { useAuthStore } from '../stores/authStore';
@@ -10,9 +10,14 @@ import { UserProfileResponse } from '../services/api';
 const RoomLobby: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
-  const { getRoom, getMyProfile, startGame, getChatHistory } = useApi();
-  const { user } = useAuthStore();
-  const { socket, isConnected, joinRoom } = useSocket({ token: useAuthStore.getState().accessToken || '' });
+  const { getRoom, getMyProfile, getChatHistory } = useApi();
+  const { socket, isConnected, joinRoom } = useSocket({ 
+    token: useAuthStore.getState().accessToken || '',
+    onRoomRejoin: (roomId: string) => {
+      console.log('[RoomLobby] 재연결 후 방 정보 갱신:', roomId);
+      getRoom(roomId).then(res => setRoom(res.data));
+    }
+  });
 
   const [room, setRoom] = useState<any>(null);
   const [profile, setProfile] = useState<UserProfileResponse | null>(null);
@@ -20,6 +25,7 @@ const RoomLobby: React.FC = () => {
   const [myReadyState, setMyReadyState] = useState(false);
   const [gameStarting, setGameStarting] = useState(false);
   const [chatHistory, setChatHistory] = useState<any[]>([]);
+  const [gameStatus, setGameStatus] = useState<'waiting' | 'playing' | 'finished'>('waiting');
 
   // 프로필은 최초 1회만
   useEffect(() => {
@@ -29,8 +35,32 @@ const RoomLobby: React.FC = () => {
   // 방 정보는 roomId 바뀔 때마다
   useEffect(() => {
     if (!roomId) return;
-    getRoom(roomId).then(res => setRoom(res.data));
-  }, [roomId]);
+    getRoom(roomId).then(res => {
+      setRoom(res.data);
+      // API에서 받아온 방 상태로 게임 상태 초기화
+      if (res.data.status) {
+        setGameStatus(res.data.status);
+      }
+      
+      // 레디 상태 초기화 - API 응답의 players 정보 사용
+      const readyPlayersSet = new Set<string>();
+      if (res.data.players) {
+        res.data.players.forEach((player: any) => {
+          if (player.ready) {
+            readyPlayersSet.add(player.profile_id);
+          }
+        });
+      }
+      setReadyPlayers(readyPlayersSet);
+      
+      // 내 레디 상태 확인
+      if (profile && readyPlayersSet.has(profile.id)) {
+        setMyReadyState(true);
+      } else {
+        setMyReadyState(false);
+      }
+    });
+  }, [roomId, profile]);
 
   // 채팅 히스토리 가져오기
   useEffect(() => {
@@ -46,7 +76,7 @@ const RoomLobby: React.FC = () => {
 
   // 소켓 연결 후 방 입장
   useEffect(() => {
-    if (!isConnected || !roomId || !socket) return;
+    if (!isConnected || !roomId || !socket?.connected) return;
     
     console.log('[RoomLobby] 방 입장 시도:', roomId);
     joinRoom(roomId).then(() => {
@@ -106,6 +136,45 @@ const RoomLobby: React.FC = () => {
     };
   }, [socket, roomId, getRoom]);
 
+  // 게임 시작/종료 이벤트 리스너
+  useEffect(() => {
+    if (!socket || !roomId) return;
+    
+    const handleGameStart = (data: any) => {
+      if (data.room_id === roomId) {
+        console.log('[RoomLobby] 게임 시작됨:', data);
+        setGameStatus('playing');
+        setGameStarting(false);
+        
+        // 게임 화면으로 전환 (예: 게임 페이지로 이동)
+        // navigate(`/game/${roomId}`);
+        alert(`${data.host_display_name}님이 게임을 시작했습니다.`);
+      }
+    };
+
+    const handleGameFinish = (data: any) => {
+      if (data.room_id === roomId) {
+        console.log('[RoomLobby] 게임 종료됨:', data);
+        setGameStatus('finished');
+        
+        // 3초 후 대기실로 돌아가기
+        setTimeout(() => {
+          setGameStatus('waiting');
+        }, 3000);
+        
+        alert(`${data.host_display_name}님이 게임을 종료했습니다.`);
+      }
+    };
+
+    socket.on(SocketEventType.START_GAME, handleGameStart);
+    socket.on(SocketEventType.FINISH_GAME, handleGameFinish);
+    
+    return () => {
+      socket.off(SocketEventType.START_GAME, handleGameStart);
+      socket.off(SocketEventType.FINISH_GAME, handleGameFinish);
+    };
+  }, [socket, roomId]);
+
   if (!room || !profile) return <div>로딩 중...</div>;
 
   const isHost = room.host_profile_id === profile.id;
@@ -124,12 +193,29 @@ const RoomLobby: React.FC = () => {
     socket.emit(SocketEventType.READY, { room_id: roomId, ready: newReadyState });
     setMyReadyState(newReadyState);
   };
-  const handleStartGame = async () => {
-    if (!roomId) return;
+  const handleStartGame = () => {
+    if (!roomId || !socket?.connected) return;
     setGameStarting(true);
-    await startGame(roomId);
-    setGameStarting(false);
-    // 게임 시작 후 페이지 이동 등 추가 가능
+    
+    // Socket 이벤트로만 게임 시작 요청
+    socket.emit(SocketEventType.START_GAME, { room_id: roomId });
+    
+    // 서버에서 응답이 오면 handleGameStart에서 setGameStarting(false) 처리
+  };
+
+  const handleFinishGame = async () => {
+    if (!roomId || !socket?.connected) return;
+    
+    try {
+      // Socket 이벤트로 게임 종료 요청
+      socket.emit(SocketEventType.FINISH_GAME, { room_id: roomId });
+      
+      // API 호출도 함께 (서버에서 방 상태 업데이트)
+      // await endGame(roomId); // endGame API가 있다면 사용
+    } catch (error) {
+      console.error('[RoomLobby] 게임 종료 실패:', error);
+      alert('게임 종료에 실패했습니다.');
+    }
   };
 
   return (
@@ -147,7 +233,10 @@ const RoomLobby: React.FC = () => {
           <div style={{ border: '1px solid #ddd', borderRadius: 8, padding: 16 }}>
             <div><b>설명:</b> {room.description || '-'}</div>
             <div><b>인원:</b> {room.current_players} / {room.max_players}</div>
-            <div><b>상태:</b> {room.status}</div>
+            <div><b>상태:</b> 
+              {gameStatus === 'waiting' ? '대기 중' : 
+               gameStatus === 'playing' ? '게임 진행 중' : '게임 종료'}
+            </div>
             <div><b>공개:</b> {room.visibility === 'public' ? '공개' : '비공개'}</div>
           </div>
           {/* 플레이어 목록 */}
@@ -183,44 +272,79 @@ const RoomLobby: React.FC = () => {
       </div>
       {/* 하단: 게임 시작/레디 버튼 */}
       <div style={{ padding: 16, borderTop: '1px solid #eee', display: 'flex', justifyContent: 'center', background: '#fafbfc' }}>
-        {isHost ? (
-          <button
-            onClick={handleStartGame}
-            disabled={gameStarting || room.current_players < 2 || !allPlayersReady}
-            style={{
-              backgroundColor: gameStarting || room.current_players < 2 || !allPlayersReady ? '#ccc' : '#4CAF50',
-              color: 'white',
-              border: 'none',
-              borderRadius: 6,
-              padding: '12px 32px',
-              fontSize: 18,
-              fontWeight: 'bold',
-              cursor: gameStarting || room.current_players < 2 || !allPlayersReady ? 'not-allowed' : 'pointer',
-              minWidth: 180
-            }}
-          >
-            {gameStarting ? '⏳ 게임 시작 중...' :
-              room.current_players < 2 ? '❌ 최소 2명 필요' :
-              !allPlayersReady ? '⏸️ 모든 플레이어 레디 필요' :
-              '🚀 게임 시작하기'}
-          </button>
-        ) : (
-          <button
-            onClick={handleToggleReady}
-            style={{
-              backgroundColor: myReadyState ? '#4CAF50' : '#ff9800',
-              color: 'white',
-              border: 'none',
-              borderRadius: 6,
-              padding: '12px 32px',
-              fontSize: 18,
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              minWidth: 180
-            }}
-          >
-            {myReadyState ? '✅ 레디 완료' : '🎯 레디하기'}
-          </button>
+        {gameStatus === 'waiting' && (
+          isHost ? (
+            <button
+              onClick={handleStartGame}
+              disabled={gameStarting || room.current_players < 2 || !allPlayersReady}
+              style={{
+                backgroundColor: gameStarting || room.current_players < 2 || !allPlayersReady ? '#ccc' : '#4CAF50',
+                color: 'white',
+                border: 'none',
+                borderRadius: 6,
+                padding: '12px 32px',
+                fontSize: 18,
+                fontWeight: 'bold',
+                cursor: gameStarting || room.current_players < 2 || !allPlayersReady ? 'not-allowed' : 'pointer',
+                minWidth: 180
+              }}
+            >
+              {gameStarting ? '⏳ 게임 시작 중...' :
+                room.current_players < 2 ? '❌ 최소 2명 필요' :
+                !allPlayersReady ? '⏸️ 모든 플레이어 레디 필요' :
+                '🚀 게임 시작하기'}
+            </button>
+          ) : (
+            <button
+              onClick={handleToggleReady}
+              style={{
+                backgroundColor: myReadyState ? '#4CAF50' : '#ff9800',
+                color: 'white',
+                border: 'none',
+                borderRadius: 6,
+                padding: '12px 32px',
+                fontSize: 18,
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                minWidth: 180
+              }}
+            >
+              {myReadyState ? '✅ 레디 완료' : '🎯 레디하기'}
+            </button>
+          )
+        )}
+
+        {gameStatus === 'playing' && (
+          <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+            <span style={{ fontSize: 18, fontWeight: 'bold', color: '#4CAF50' }}>
+              🎮 게임 진행 중
+            </span>
+            {isHost && (
+              <button
+                onClick={handleFinishGame}
+                style={{
+                  backgroundColor: '#f44336',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 6,
+                  padding: '12px 24px',
+                  fontSize: 16,
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}
+              >
+                🏁 게임 종료
+              </button>
+            )}
+          </div>
+        )}
+
+        {gameStatus === 'finished' && (
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <span style={{ fontSize: 18, fontWeight: 'bold', color: '#ff9800' }}>
+              🏆 게임 종료 - 3초 후 대기실로 돌아갑니다
+            </span>
+          </div>
         )}
       </div>
     </div>

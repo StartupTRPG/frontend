@@ -232,6 +232,7 @@ export interface RoomPlayerResponse {
   avatar_url: string | null;
   role: 'host' | 'player' | 'observer';
   joined_at: string;
+  ready: boolean;
 }
 
 export interface RoomChatHistoryResponse {
@@ -549,18 +550,6 @@ class ApiService {
   async deleteRoom(accessToken: string, roomId: string): Promise<ApiResponse<any>> {
     return this.request<ApiResponse<any>>(`/rooms/${roomId}`, 
       this.withAuthHeader({ method: 'DELETE' }, accessToken)
-    );
-  }
-
-  async startGame(accessToken: string, roomId: string): Promise<ApiResponse<any>> {
-    return this.request<ApiResponse<any>>(`/rooms/${roomId}/start`, 
-      this.withAuthHeader({ method: 'POST' }, accessToken)
-    );
-  }
-
-  async endGame(accessToken: string, roomId: string): Promise<ApiResponse<any>> {
-    return this.request<ApiResponse<any>>(`/rooms/${roomId}/end`, 
-      this.withAuthHeader({ method: 'POST' }, accessToken)
     );
   }
 

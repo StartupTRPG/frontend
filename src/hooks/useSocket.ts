@@ -14,11 +14,20 @@ interface UseSocketOptions {
   onConnect?: (userInfo: UserInfo) => void;
   onDisconnect?: () => void;
   onError?: (error: string) => void;
+  onRoomRejoin?: (roomId: string) => void; // 재연결 후 방 재입장 시 호출
 }
 
 export const useSocket = (options: UseSocketOptions) => {
-  const { token, onConnect, onDisconnect, onError } = options;
+  const { token, onConnect, onDisconnect, onError, onRoomRejoin } = options;
   const socketRef = useRef<Socket | null>(null);
+  const lastRoomRef = useRef<string | null>(null); // 마지막으로 입장한 방 ID 저장
+  const onRoomRejoinRef = useRef(onRoomRejoin); // 콜백을 ref로 저장
+  
+  // 콜백이 변경될 때 ref 업데이트
+  useEffect(() => {
+    onRoomRejoinRef.current = onRoomRejoin;
+  }, [onRoomRejoin]);
+  
   const [state, setState] = useState<SocketState>({
     isConnected: false,
     userInfo: null,
@@ -42,6 +51,23 @@ export const useSocket = (options: UseSocketOptions) => {
         error: null,
       }));
       onConnect?.(data);
+      
+      // 재연결 시 마지막 방에 자동으로 다시 입장
+      if (lastRoomRef.current && socketRef.current) {
+        console.log('[useSocket] 재연결 시 방 자동 입장:', lastRoomRef.current);
+        socketRef.current.emit(SocketEventType.JOIN_ROOM, { room_id: lastRoomRef.current }, (response: any) => {
+          if (!response?.error) {
+            setState(prev => ({ ...prev, currentRoom: lastRoomRef.current }));
+            console.log('[useSocket] 재연결 후 방 입장 성공:', lastRoomRef.current);
+            if (lastRoomRef.current) {
+              onRoomRejoinRef.current?.(lastRoomRef.current); // 재연결 후 방 재입장 성공 시 콜백 호출
+            }
+          } else {
+            console.error('[useSocket] 재연결 후 방 입장 실패:', response.error);
+            lastRoomRef.current = null; // 실패 시 마지막 방 정보 초기화
+          }
+        });
+      }
     });
 
     socket.on('connect_failed', (data: { message: string }) => {
@@ -84,7 +110,10 @@ export const useSocket = (options: UseSocketOptions) => {
 
   // 방 입장
   const joinRoom = useCallback((roomId: string, password?: string) => {
-    if (!socketRef.current?.connected) throw new Error('Socket is not connected');
+    if (!socketRef.current || !socketRef.current.connected) {
+      console.warn('[useSocket] 소켓이 연결되지 않음, 방 입장 대기');
+      return Promise.reject(new Error('Socket is not connected'));
+    }
     
     // 이미 같은 방에 있으면 중복 입장 방지
     if (state.currentRoom === roomId) {
@@ -101,6 +130,7 @@ export const useSocket = (options: UseSocketOptions) => {
         } else {
           console.log('[useSocket] 방 입장 성공:', roomId);
           setState(prev => ({ ...prev, currentRoom: roomId }));
+          lastRoomRef.current = roomId; // 마지막 방 ID 저장
           resolve();
         }
       });
@@ -112,6 +142,7 @@ export const useSocket = (options: UseSocketOptions) => {
     if (!socketRef.current?.connected || !state.currentRoom) return;
     socketRef.current.emit(SocketEventType.LEAVE_ROOM, { room_id: state.currentRoom });
     setState(prev => ({ ...prev, currentRoom: null }));
+    lastRoomRef.current = null; // 마지막 방 ID 초기화
   }, [state.currentRoom]);
 
   useEffect(() => {

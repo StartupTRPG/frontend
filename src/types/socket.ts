@@ -1,27 +1,28 @@
 // 소켓 이벤트 및 데이터 타입 정의
 
 export enum SocketEventType {
-  // 인증 관련
+  // 기존 이벤트들
+  CONNECT_SUCCESS = "connect_success",
   CONNECT = "connect",
   DISCONNECT = "disconnect",
-  CONNECT_SUCCESS = "connect_success",
+  ERROR = "error",
+  FORCE_DISCONNECT = "force_disconnect",
   
-  // 방 관련
+  // 방 관련 이벤트
   JOIN_ROOM = "join_room",
   LEAVE_ROOM = "leave_room",
   ROOM_DELETED = "room_deleted",
   
-  // 레디 관련
-  READY = "ready",
-  
-  // 채팅 관련
+  // 채팅 이벤트
   LOBBY_MESSAGE = "lobby_message",
-  SYSTEM_MESSAGE = "system_message",
   GAME_MESSAGE = "game_message",
   
-  // 공통
-  ERROR = "error",
-  FORCE_DISCONNECT = "force_disconnect",
+  // 레디 이벤트
+  READY = "ready",
+  
+  // 새로 추가된 게임 이벤트
+  START_GAME = "start_game",
+  FINISH_GAME = "finish_game",
 }
 
 export interface UserInfo {

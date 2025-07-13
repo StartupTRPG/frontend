@@ -46,10 +46,6 @@ export const useApi = () => {
       authenticatedRequest(token => apiService.updateRoom(token, roomId, roomData)), [authenticatedRequest]),
     deleteRoom: useCallback((roomId: string) =>
       authenticatedRequest(token => apiService.deleteRoom(token, roomId)), [authenticatedRequest]),
-    startGame: useCallback((roomId: string) =>
-      authenticatedRequest(token => apiService.startGame(token, roomId)), [authenticatedRequest]),
-    endGame: useCallback((roomId: string) =>
-      authenticatedRequest(token => apiService.endGame(token, roomId)), [authenticatedRequest]),
     getChatHistory: useCallback((roomId: string, page?: number, limit?: number) =>
       authenticatedRequest(token => apiService.getChatHistory(token, roomId, page, limit)), [authenticatedRequest]),
     getLobbyChatHistory: useCallback((page?: number, limit?: number) =>
