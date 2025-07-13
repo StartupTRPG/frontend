@@ -158,11 +158,11 @@ export interface UserProfileUpdate {
 }
 
 export interface UserProfileResponse {
-  id?: string;
+  id: string;
   user_id: string;
   username: string;
   display_name: string;
-  bio?: string;
+  bio: string;
   avatar_url?: string;
   user_level: number;
   created_at: string;

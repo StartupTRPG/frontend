@@ -11,6 +11,9 @@ export enum SocketEventType {
   LEAVE_ROOM = "leave_room",
   ROOM_DELETED = "room_deleted",
   
+  // 레디 관련
+  READY = "ready",
+  
   // 채팅 관련
   LOBBY_MESSAGE = "lobby_message",
   SYSTEM_MESSAGE = "system_message",
@@ -69,4 +72,17 @@ export interface RoomMessage {
   display_name?: string;
   timestamp: string;
   data: Record<string, any>;
+}
+
+// 레디 관련 인터페이스
+export interface ReadyRequest {
+  room_id: string;
+  ready: boolean;
+}
+
+export interface ReadyResponse {
+  room_id: string;
+  profile_id: string;
+  ready: boolean;
+  all_ready: boolean;
 } 

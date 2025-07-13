@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProfile } from '../hooks/useProfile';
 import { UserProfileCreate, UserProfileUpdate } from '../types/profile';
+import { UserProfileResponse } from '../services/api';
 
 const CreateProfile: React.FC = () => {
   const navigate = useNavigate();
   const { createProfile, updateMyProfile, getMyProfile, loading, error } = useProfile();
   const [isEditMode, setIsEditMode] = useState(false);
   const [isViewMode, setIsViewMode] = useState(true);
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<UserProfileResponse | null>(null);
   const [formData, setFormData] = useState<UserProfileCreate>({
     display_name: '',
     bio: '',
@@ -23,7 +24,7 @@ const CreateProfile: React.FC = () => {
     const fetchProfile = async () => {
       try {
         const existingProfile = await getMyProfile();
-        setProfile(existingProfile);
+        setProfile(existingProfile as UserProfileResponse);
         setFormData({
           display_name: existingProfile.display_name,
           bio: existingProfile.bio || '',
@@ -64,7 +65,7 @@ const CreateProfile: React.FC = () => {
         setIsViewMode(true);
         // 프로필 다시 조회
         const updatedProfile = await getMyProfile();
-        setProfile(updatedProfile);
+        setProfile(updatedProfile as UserProfileResponse);
       } else {
         await createProfile({
           ...formData,

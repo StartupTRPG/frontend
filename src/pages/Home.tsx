@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useApi } from '../hooks/useApi';
 import { useAuthStore } from '../stores/authStore';
-import { RoomListResponse, RoomCreateRequest } from '../services/api';
+import { RoomListResponse, RoomCreateRequest, UserProfileResponse } from '../services/api';
 import { useProfile } from '../hooks/useProfile';
 
 
@@ -15,11 +15,12 @@ const Home: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
   const [autoRefreshInterval, setAutoRefreshInterval] = useState<number>(5); // 0: 비활성화, 1, 5, 10초 (기본값: 5초)
+  // 인증 관련 user는 그대로 두고, 나머지는 profile 사용
   const { user } = useAuthStore();
   const { getRooms, createRoom, logout: apiLogout } = useApi();
   const { logout } = useAuthStore();
   const { getMyProfile } = useProfile();
-  const [myProfile, setMyProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<UserProfileResponse | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -102,7 +103,7 @@ const Home: React.FC = () => {
     try {
       setProfileLoading(true);
       const response = await getMyProfile();
-      setMyProfile(response);
+      setProfile(response as UserProfileResponse);
     } catch (error) {
       console.error('[Home] 프로필 조회 실패:', error);
       
@@ -218,7 +219,7 @@ const Home: React.FC = () => {
       <h1>방 목록</h1>
       
       {/* 프로필 정보 카드 */}
-      {myProfile && (
+      {profile && (
         <div style={{
           backgroundColor: '#f8f9fa',
           border: '1px solid #dee2e6',
@@ -230,7 +231,7 @@ const Home: React.FC = () => {
           gap: '15px'
         }}>
           <img 
-            src={myProfile.avatar_url || 'https://ssl.pstatic.net/static/pwe/address/img_profile.png'}
+            src={profile.avatar_url || 'https://ssl.pstatic.net/static/pwe/address/img_profile.png'}
             alt="프로필 이미지"
             style={{
               width: '60px',
@@ -241,21 +242,21 @@ const Home: React.FC = () => {
           />
           <div>
             <h3 style={{ margin: '0 0 5px 0', color: '#333' }}>
-              {myProfile.display_name}
+              {profile.display_name}
             </h3>
             <p style={{ margin: '0 0 5px 0', color: '#666', fontSize: '14px' }}>
-              레벨 {myProfile.user_level}
+              레벨 {profile.user_level}
             </p>
-            {myProfile.bio && (
+            {profile.bio && (
               <p style={{ margin: '0', color: '#666', fontSize: '14px' }}>
-                {myProfile.bio}
+                {profile.bio}
               </p>
             )}
           </div>
         </div>
       )}
       
-      <p>안녕하세요, {myProfile?.display_name || user?.username}님!</p>
+      <p>안녕하세요, {profile?.display_name}님!</p>
       
       <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
         <button onClick={() => fetchRooms(true)} style={{ marginRight: '10px' }}>새로고침</button>
