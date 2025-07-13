@@ -4,8 +4,6 @@ import { useApi } from '../hooks/useApi';
 import { useAuthStore } from '../stores/authStore';
 import { RoomListResponse, RoomCreateRequest } from '../services/api';
 import { useProfile } from '../hooks/useProfile';
-import { useSocketHandlers } from '../hooks/useSocketHandlers';
-import { useSocketLogging } from '../hooks/useSocketLogging';
 
 
 const Home: React.FC = () => {
@@ -35,9 +33,11 @@ const Home: React.FC = () => {
   });
 
   useEffect(() => {
-    fetchRooms();
+    setTimeout(() => {
+      fetchRooms();
+    }, 700); // 0.7초 딜레이 후 실행
     fetchMyProfile();
-  }, []); // 컴포넌트 마운트 시에만 실행
+  }, [location.pathname]); // 홈 경로로 이동할 때마다 실행
 
   // 페이지 포커스 시 방 리스트 새로고침
   useEffect(() => {
