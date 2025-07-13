@@ -4,6 +4,8 @@ import { useApi } from '../hooks/useApi';
 import { useAuthStore } from '../stores/authStore';
 import { RoomListResponse, RoomCreateRequest, UserProfileResponse } from '../services/api';
 import { useProfile } from '../hooks/useProfile';
+import { useSocket } from '../hooks/useSocket';
+import { SocketEventType } from '../types/socket';
 
 
 const Home: React.FC = () => {
@@ -23,6 +25,11 @@ const Home: React.FC = () => {
   const [profile, setProfile] = useState<UserProfileResponse | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // 소켓 연결
+  const { socket } = useSocket({ 
+    token: useAuthStore.getState().accessToken || ''
+  });
 
   // 방 생성 폼 상태
   const [createForm, setCreateForm] = useState<RoomCreateRequest>({
@@ -38,7 +45,26 @@ const Home: React.FC = () => {
       fetchRooms();
     }, 700); // 0.7초 딜레이 후 실행
     fetchMyProfile();
-  }, [location.pathname]); // 홈 경로로 이동할 때마다 실행
+  }, [location.pathname]);
+
+  // 게임 종료 이벤트 리스너 (Home 페이지에서도 처리)
+  useEffect(() => {
+    if (!socket) return;
+    
+    const handleGameFinish = (data: any) => {
+      console.log('[Home] 게임 종료됨:', data);
+      // 방 목록 새로고침
+      fetchRooms(false);
+    };
+
+    console.log('[Home] FINISH_GAME 이벤트 리스너 등록');
+    socket.on(SocketEventType.FINISH_GAME, handleGameFinish);
+    
+    return () => {
+      console.log('[Home] FINISH_GAME 이벤트 리스너 해제');
+      socket.off(SocketEventType.FINISH_GAME, handleGameFinish);
+    };
+  }, [socket]); // 홈 경로로 이동할 때마다 실행
 
   // 페이지 포커스 시 방 리스트 새로고침
   useEffect(() => {

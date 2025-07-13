@@ -3,6 +3,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
 import RoomLobby from './pages/RoomLobby';
+import GamePage from './pages/GamePage';
 import CreateProfile from './pages/CreateProfile';
 import NotFound from './pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -108,6 +109,16 @@ function AppWithSocket() {
             <ProtectedRoute>
               <ErrorBoundary>
                 <RoomLobby />
+              </ErrorBoundary>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/game/:roomId" 
+          element={
+            <ProtectedRoute>
+              <ErrorBoundary>
+                <GamePage />
               </ErrorBoundary>
             </ProtectedRoute>
           } 

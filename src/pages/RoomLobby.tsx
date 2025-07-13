@@ -26,6 +26,7 @@ const RoomLobby: React.FC = () => {
   const [gameStarting, setGameStarting] = useState(false);
   const [chatHistory, setChatHistory] = useState<any[]>([]);
   const [gameStatus, setGameStatus] = useState<'waiting' | 'playing' | 'finished'>('waiting');
+  const [chatType, setChatType] = useState<'lobby' | 'game'>('lobby');
 
   // 프로필은 최초 1회만
   useEffect(() => {
@@ -100,8 +101,22 @@ const RoomLobby: React.FC = () => {
         if (data.profile_id === profile?.id) setMyReadyState(data.ready);
       }
     };
+    
+    const handleResetReady = (data: any) => {
+      if (data.room_id === roomId) {
+        console.log('[RoomLobby] 모든 플레이어 ready 상태 초기화 이벤트 수신');
+        setReadyPlayers(new Set());
+        setMyReadyState(false);
+      }
+    };
+    
     socket.on(SocketEventType.READY, handleReadyUpdate);
-    return () => { socket.off(SocketEventType.READY, handleReadyUpdate); };
+    socket.on(SocketEventType.RESET_READY, handleResetReady);
+    
+    return () => { 
+      socket.off(SocketEventType.READY, handleReadyUpdate);
+      socket.off(SocketEventType.RESET_READY, handleResetReady);
+    };
   }, [socket, roomId, profile]);
 
   // 방 삭제 이벤트 리스너
@@ -145,9 +160,16 @@ const RoomLobby: React.FC = () => {
         console.log('[RoomLobby] 게임 시작됨:', data);
         setGameStatus('playing');
         setGameStarting(false);
+        setChatType('game'); // 채팅 타입을 게임으로 변경
         
-        // 게임 화면으로 전환 (예: 게임 페이지로 이동)
-        // navigate(`/game/${roomId}`);
+        // 방 정보 새로고침하여 서버 상태와 동기화
+        getRoom(roomId).then(res => {
+          console.log('[RoomLobby] 게임 시작 후 방 정보 새로고침');
+          setRoom(res.data);
+        });
+        
+        // 게임 페이지로 이동
+        navigate(`/game/${roomId}`);
         alert(`${data.host_display_name}님이 게임을 시작했습니다.`);
       }
     };
@@ -156,10 +178,31 @@ const RoomLobby: React.FC = () => {
       if (data.room_id === roomId) {
         console.log('[RoomLobby] 게임 종료됨:', data);
         setGameStatus('finished');
+        setChatType('lobby'); // 채팅 타입을 로비로 변경
+        
+        // 모든 플레이어의 ready 상태를 false로 초기화
+        console.log('[RoomLobby] 모든 플레이어 ready 상태 초기화');
+        setReadyPlayers(new Set());
+        setMyReadyState(false);
+        
+        // 방 정보 새로고침하여 서버 상태와 동기화
+        getRoom(roomId).then(res => {
+          console.log('[RoomLobby] 게임 종료 후 방 정보 새로고침');
+          setRoom(res.data);
+        });
+        
+        // 게임 페이지에 있다면 로비로 강제 이동
+        if (window.location.pathname.includes('/game/')) {
+          navigate(`/room/${roomId}`);
+        }
         
         // 3초 후 대기실로 돌아가기
         setTimeout(() => {
           setGameStatus('waiting');
+          // 한 번 더 ready 상태 초기화 (다른 클라이언트에서 돌아온 경우 대비)
+          console.log('[RoomLobby] 대기실 복귀 후 ready 상태 재초기화');
+          setReadyPlayers(new Set());
+          setMyReadyState(false);
         }, 3000);
         
         alert(`${data.host_display_name}님이 게임을 종료했습니다.`);
@@ -204,11 +247,17 @@ const RoomLobby: React.FC = () => {
   };
 
   const handleFinishGame = async () => {
-    if (!roomId || !socket?.connected) return;
+    console.log('[RoomLobby] 게임 종료 버튼 클릭:', { roomId, socketConnected: socket?.connected });
+    if (!roomId || !socket?.connected) {
+      console.error('[RoomLobby] 게임 종료 실패: 조건 불만족', { roomId, socketConnected: socket?.connected });
+      return;
+    }
     
     try {
       // Socket 이벤트로 게임 종료 요청
+      console.log('[RoomLobby] FINISH_GAME 이벤트 전송:', { room_id: roomId });
       socket.emit(SocketEventType.FINISH_GAME, { room_id: roomId });
+      console.log('[RoomLobby] FINISH_GAME 이벤트 전송 완료');
       
       // API 호출도 함께 (서버에서 방 상태 업데이트)
       // await endGame(roomId); // endGame API가 있다면 사용
@@ -265,7 +314,7 @@ const RoomLobby: React.FC = () => {
             roomId={roomId!} 
             socket={socket} 
             profile={profile}
-            chatType="lobby" 
+            chatType={chatType} 
             initialMessages={chatHistory} 
           />
         </div>

@@ -23,6 +23,7 @@ export enum SocketEventType {
   // 새로 추가된 게임 이벤트
   START_GAME = "start_game",
   FINISH_GAME = "finish_game",
+  RESET_READY = "reset_ready",
 }
 
 export interface UserInfo {
