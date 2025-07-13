@@ -15,8 +15,9 @@ const RoomLobby: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [myProfile, setMyProfile] = useState<any>(null);
+  const [chatHistory, setChatHistory] = useState<any[]>([]);
   const { user } = useAuthStore();
-  const { getRoom, startGame, endGame, getMyProfile, getMyRooms, getMyRoom } = useApi();
+  const { getRoom, startGame, endGame, getMyProfile, getMyRoom, getChatHistory } = useApi();
   const { isConnected, error: connectionError, joinRoom, leaveRoom, socket } = useSocket({
     token: useAuthStore.getState().accessToken || '',
   });
@@ -31,6 +32,7 @@ const RoomLobby: React.FC = () => {
 
     fetchRoom();
     fetchMyProfile();
+    fetchChatHistory(); // 채팅 이력 가져오기
 
     // 2. useEffect에서 joinRoom(roomId)만 호출하도록 수정
     joinRoom(roomId).catch((error) => {
@@ -78,6 +80,17 @@ const RoomLobby: React.FC = () => {
       setMyProfile(response);
     } catch (error) {
       console.error('프로필 조회 실패:', error);
+    }
+  };
+
+  const fetchChatHistory = async () => {
+    if (!roomId) return;
+    
+    try {
+      const response = await getChatHistory(roomId, 1, 50); // 최근 50개 메시지
+      setChatHistory(response.data.messages || []);
+    } catch (error) {
+      console.error('채팅 이력 조회 실패:', error);
     }
   };
 
@@ -403,7 +416,13 @@ const RoomLobby: React.FC = () => {
           width: '350px',
           flexShrink: 0
         }}>
-          <ChatBox roomId={roomId!} socket={socket} user={user} chatType="lobby" />
+          <ChatBox 
+            roomId={roomId!} 
+            socket={socket} 
+            user={user} 
+            chatType="lobby" 
+            initialMessages={chatHistory}
+          />
         </div>
       </div>
     </div>

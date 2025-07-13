@@ -7,10 +7,11 @@ interface ChatBoxProps {
   socket: any;
   user: any;
   chatType?: 'lobby' | 'game'; // 채팅 타입 추가
+  initialMessages?: ChatMessage[]; // 초기 채팅 메시지
 }
 
-const ChatBox: React.FC<ChatBoxProps> = ({ roomId, socket, user, chatType = 'lobby' }) => {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+const ChatBox: React.FC<ChatBoxProps> = ({ roomId, socket, user, chatType = 'lobby', initialMessages = [] }) => {
+  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState('');
   const [isComposing, setIsComposing] = useState(false); // 한글 조합 상태
   const { getChatHistory } = useChat();
@@ -18,6 +19,12 @@ const ChatBox: React.FC<ChatBoxProps> = ({ roomId, socket, user, chatType = 'lob
 
   // 채팅 기록 불러오기 - useCallback으로 메모이제이션
   const loadChatHistory = useCallback(async () => {
+    // 초기 메시지가 있으면 API 호출하지 않음
+    if (initialMessages.length > 0) {
+      console.log('[ChatBox] 초기 메시지 사용:', initialMessages.length);
+      return;
+    }
+    
     try {
       const history = await getChatHistory(roomId);
       if (Array.isArray(history)) {
@@ -26,7 +33,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ roomId, socket, user, chatType = 'lob
     } catch (error) {
       console.error('채팅 기록 로드 실패:', error);
     }
-  }, [roomId, getChatHistory]);
+  }, [roomId, getChatHistory, initialMessages.length]);
 
   // 소켓 메시지 핸들러 - 컴포넌트 최상위 레벨에서 정의
   const handleChatMessage = useCallback((msg: ChatMessage) => {
@@ -70,6 +77,14 @@ const ChatBox: React.FC<ChatBoxProps> = ({ roomId, socket, user, chatType = 'lob
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !isComposing) sendMessage();
   }, [sendMessage, isComposing]);
+
+  // 초기 메시지가 변경될 때 messages 상태 업데이트
+  useEffect(() => {
+    if (initialMessages.length > 0) {
+      console.log('[ChatBox] 초기 메시지 업데이트:', initialMessages.length);
+      setMessages(initialMessages);
+    }
+  }, [initialMessages]);
 
   // 채팅 기록 불러오기
   useEffect(() => {
