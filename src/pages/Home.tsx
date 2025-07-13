@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useApi } from '../hooks/useApi';
 import { useAuthStore } from '../stores/authStore';
 import { RoomListResponse, RoomCreateRequest } from '../services/api';
@@ -7,6 +7,7 @@ import { RoomListResponse, RoomCreateRequest } from '../services/api';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [rooms, setRooms] = useState<RoomListResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,6 +30,25 @@ const Home: React.FC = () => {
   useEffect(() => {
     fetchRooms();
   }, []);
+
+  // 페이지 포커스 시 방 리스트 새로고침
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log('[Home] 페이지 포커스 - 방 리스트 새로고침');
+      fetchRooms(false); // 로딩 상태 없이 방 리스트만 새로고침
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
+
+  // Home 페이지 진입 시 방 리스트 새로고침
+  useEffect(() => {
+    console.log('[Home] 페이지 진입 - 방 리스트 새로고침');
+    fetchRooms(false); // 로딩 상태 없이 방 리스트만 새로고침
+  }, [location.pathname]);
 
   // 자동 새로고침 설정
   useEffect(() => {

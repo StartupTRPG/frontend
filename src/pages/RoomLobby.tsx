@@ -7,6 +7,7 @@ import { RoomResponse } from '../services/api';
 import { useSocket } from '../hooks/useSocket';
 import { useSocketHandlers } from '../hooks/useSocketHandlers';
 import ChatBox from '../components/common/ChatBox';
+import NotFound from './NotFound';
 import { SocketEventType } from '../types/socket';
 
 const RoomLobby: React.FC = () => {
@@ -42,18 +43,23 @@ const RoomLobby: React.FC = () => {
 
   useEffect(() => {
     if (!roomId) return;
-    if (!isConnected) return; // 소켓 연결될 때까지 대기
 
+    // 먼저 방 정보를 가져와서 방이 존재하는지 확인
     fetchRoom();
     fetchMyProfile();
+  }, [roomId]);
+
+  // 방 정보를 성공적으로 가져온 후에만 소켓 연결 및 입장
+  useEffect(() => {
+    if (!roomId || !room || !isConnected) return;
+
     fetchChatHistory(); // 채팅 이력 가져오기
 
-    // 2. useEffect에서 joinRoom(roomId)만 호출하도록 수정
+    // 방이 존재할 때만 소켓으로 입장
     joinRoom(roomId).catch((error) => {
       setError('방 입장에 실패했습니다. 소켓 연결을 확인해주세요.');
     });
-    // 필요시 socket.on(...)으로 이벤트 리스너 등록 가능
-  }, [roomId, isConnected, navigate]);
+  }, [roomId, room, isConnected]);
 
 
 
@@ -132,15 +138,17 @@ const RoomLobby: React.FC = () => {
     }
   };
 
-  // 소켓 이벤트 핸들러 등록
+  // 소켓 이벤트 핸들러 등록 (방이 존재할 때만)
   useEffect(() => {
+    if (!room) return;
+    
     const cleanup = registerEventHandlers();
     return cleanup;
-  }, [registerEventHandlers]);
+  }, [registerEventHandlers, room]);
 
   // 게임 시작 이벤트 리스너 (백엔드에 없는 이벤트이므로 별도 처리)
   useEffect(() => {
-    if (!socket || !roomId) return;
+    if (!socket || !roomId || !room) return;
 
     const handleGameStarted = (data: any) => {
       if (data.room_id === roomId) {
@@ -153,7 +161,7 @@ const RoomLobby: React.FC = () => {
     return () => {
       socket.off('game_started', handleGameStarted);
     };
-  }, [socket, roomId, navigate]);
+  }, [socket, roomId, room, navigate]);
 
   const getStatusText = (status: string) => {
     switch (status) {
@@ -172,8 +180,8 @@ const RoomLobby: React.FC = () => {
   // 프로필 정보를 사용하여 호스트 여부 확인
   const isHost = room?.host_id === user?.id;
 
-  if (connectionError) {
-    // "Token is required." 에러 메시지 한글화 및 안내
+  if (connectionError && room) {
+    // 방이 존재할 때만 소켓 연결 오류 표시
     const isTokenError = connectionError === 'Token is required.';
     return (
       <div style={{ padding: '20px', textAlign: 'center' }}>
@@ -196,20 +204,13 @@ const RoomLobby: React.FC = () => {
     return <div>방 정보를 불러오는 중...</div>;
   }
 
+  // 에러 발생 시 NotFound로 리다이렉트
   if (error) {
-    return (
-      <div style={{ padding: '20px', textAlign: 'center' }}>
-        <h2>오류가 발생했습니다</h2>
-        <p>{error}</p>
-        <button onClick={() => window.location.reload()}>
-          페이지 새로고침
-        </button>
-      </div>
-    );
+    return <NotFound />;
   }
 
   if (!room) {
-    return <div>방을 찾을 수 없습니다.</div>;
+    return <NotFound />;
   }
 
   return (

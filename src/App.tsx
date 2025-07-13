@@ -3,6 +3,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
 import RoomLobby from './pages/RoomLobby';
+import NotFound from './pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
 import Loading from './components/common/Loading';
 import ErrorBoundary from './components/common/ErrorBoundary';
@@ -107,6 +108,7 @@ function AppWithSocket() {
             </ProtectedRoute>
           } 
         />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </>
   );
