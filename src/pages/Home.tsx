@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApi } from '../hooks/useApi';
 import { useAuthStore } from '../stores/authStore';
@@ -12,8 +12,10 @@ const Home: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
+  const [autoRefreshInterval, setAutoRefreshInterval] = useState<number>(5); // 0: 비활성화, 1, 5, 10초 (기본값: 5초)
   const { user } = useAuthStore();
   const { getRooms, createRoom } = useApi();
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // 방 생성 폼 상태
   const [createForm, setCreateForm] = useState<RoomCreateRequest>({
@@ -28,15 +30,43 @@ const Home: React.FC = () => {
     fetchRooms();
   }, []);
 
-  const fetchRooms = async () => {
+  // 자동 새로고침 설정
+  useEffect(() => {
+    // 기존 인터벌 정리
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
+    // 새로운 인터벌 설정
+    if (autoRefreshInterval > 0) {
+      intervalRef.current = setInterval(() => {
+        fetchRooms(false); // 로딩 상태 없이 방 리스트만 업데이트
+      }, autoRefreshInterval * 1000);
+    }
+
+    // 컴포넌트 언마운트 시 정리
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [autoRefreshInterval]);
+
+  const fetchRooms = async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
       const response = await getRooms();
       setRooms(response.data);
+      setError(null); // 에러 상태 초기화
     } catch (error) {
       setError(error instanceof Error ? error.message : '방 목록을 불러오는데 실패했습니다.');
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   };
 
@@ -88,6 +118,9 @@ const Home: React.FC = () => {
     navigate(`/room/${roomId}`);
   };
 
+  const handleAutoRefreshChange = (interval: number) => {
+    setAutoRefreshInterval(interval);
+  };
 
   const getStatusText = (status: string) => {
     switch (status) {
@@ -116,8 +149,28 @@ const Home: React.FC = () => {
       <h1>방 목록</h1>
       <p>안녕하세요, {user?.username}님!</p>
       
-      <div style={{ marginBottom: '20px' }}>
-        <button onClick={fetchRooms} style={{ marginRight: '10px' }}>새로고침</button>
+      <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <button onClick={() => fetchRooms(true)} style={{ marginRight: '10px' }}>새로고침</button>
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <label>자동 새로고침:</label>
+          <select 
+            value={autoRefreshInterval} 
+            onChange={(e) => handleAutoRefreshChange(Number(e.target.value))}
+            style={{ padding: '5px', borderRadius: '4px' }}
+          >
+            <option value={0}>비활성화</option>
+            <option value={1}>1초</option>
+            <option value={5}>5초</option>
+            <option value={10}>10초</option>
+          </select>
+          {autoRefreshInterval > 0 && (
+            <span style={{ fontSize: '12px', color: '#666' }}>
+              ({autoRefreshInterval}초마다 자동 새로고침)
+            </span>
+          )}
+        </div>
+        
         <button 
           onClick={() => setShowCreateModal(true)}
           style={{ backgroundColor: '#4CAF50', color: 'white', border: 'none', padding: '10px 20px' }}
