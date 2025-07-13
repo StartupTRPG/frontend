@@ -2,6 +2,7 @@ import { useAuthStore } from '../stores/authStore';
 import { apiService } from '../services/api';
 import { LoginCredentials, RegisterCredentials } from '../services/api';
 import { handleUnauthorizedError } from '../utils/authUtils';
+import { disconnectGlobalSocket } from './useSocket';
 
 export const useAuth = () => {
   const {
@@ -57,11 +58,15 @@ export const useAuth = () => {
 
   const logout = async () => {
     try {
+      // 전역 소켓 연결 해제
+      disconnectGlobalSocket();
       await apiService.logout();
     } catch (error) {
       console.error('로그아웃 오류:', error);
     } finally {
       storeLogout();
+      // 페이지 새로고침으로 모든 상태 완전 초기화
+      window.location.href = '/login';
     }
   };
 

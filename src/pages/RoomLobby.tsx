@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApi } from '../hooks/useApi';
 import { useAuthStore } from '../stores/authStore';
+import { useSocketStore } from '../stores/socketStore';
 import { useSocket } from '../hooks/useSocket';
 import ChatBox from '../components/common/ChatBox';
 import { SocketEventType } from '../types/socket';
@@ -11,13 +12,23 @@ const RoomLobby: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
   const { getRoom, getMyProfile, getChatHistory } = useApi();
-  const { socket, isConnected, joinRoom } = useSocket({ 
+  const { 
+    socket, 
+    isConnected, 
+    currentRoom,
+    joinRoom, 
+    leaveRoom, 
+    toggleReady, 
+    startGame, 
+    finishGame 
+  } = useSocket({
     token: useAuthStore.getState().accessToken || '',
-    onRoomRejoin: (roomId: string) => {
-      console.log('[RoomLobby] 재연결 후 방 정보 갱신:', roomId);
-      getRoom(roomId).then(res => setRoom(res.data));
-    }
   });
+  
+  // 방 입장 시도 상태 추적
+  const joinAttemptedRef = useRef(false);
+  const joinTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const leavingRoomRef = useRef(false); // 방 나가기 중인지 추적
 
   const [room, setRoom] = useState<any>(null);
   const [profile, setProfile] = useState<UserProfileResponse | null>(null);
@@ -33,10 +44,13 @@ const RoomLobby: React.FC = () => {
     getMyProfile().then(res => setProfile(res.data as UserProfileResponse));
   }, []);
 
-  // 방 정보는 roomId 바뀔 때마다
+  // 방 정보는 roomId 바뀔 때만 (profile 의존성 제거)
   useEffect(() => {
     if (!roomId) return;
+    console.log('[RoomLobby] 방 정보 로드:', roomId);
     getRoom(roomId).then(res => {
+      console.log('[RoomLobby] 방 정보 로드 완료:', res.data);
+      console.log('[RoomLobby] 플레이어 목록:', res.data.players);
       setRoom(res.data);
       // API에서 받아온 방 상태로 게임 상태 초기화
       if (res.data.status) {
@@ -54,14 +68,35 @@ const RoomLobby: React.FC = () => {
       }
       setReadyPlayers(readyPlayersSet);
       
-      // 내 레디 상태 확인
+      // 내 레디 상태 확인 (profile이 로드된 후에만)
       if (profile && readyPlayersSet.has(profile.id)) {
         setMyReadyState(true);
       } else {
         setMyReadyState(false);
       }
     });
-  }, [roomId, profile]);
+  }, [roomId]); // profile 의존성 제거
+
+  // 프로필 로드 후 레디 상태 업데이트
+  useEffect(() => {
+    if (!profile || !room) return;
+    
+    // 내 레디 상태 확인
+    const readyPlayersSet = new Set<string>();
+    if (room.players) {
+      room.players.forEach((player: any) => {
+        if (player.ready) {
+          readyPlayersSet.add(player.profile_id);
+        }
+      });
+    }
+    
+    if (readyPlayersSet.has(profile.id)) {
+      setMyReadyState(true);
+    } else {
+      setMyReadyState(false);
+    }
+  }, [profile, room]);
 
   // 채팅 히스토리 가져오기
   useEffect(() => {
@@ -75,17 +110,95 @@ const RoomLobby: React.FC = () => {
     });
   }, [roomId]);
 
-  // 소켓 연결 후 방 입장
+  // 소켓 연결 후 방 입장 (개선된 로직)
   useEffect(() => {
-    if (!isConnected || !roomId || !socket?.connected) return;
+    if (!isConnected || !roomId || !socket?.connected) {
+      console.log('[RoomLobby] 방 입장 조건 불만족:', { isConnected, roomId, socketConnected: socket?.connected });
+      return;
+    }
+    
+    // 방 나가기 중이면 입장 시도하지 않음
+    if (leavingRoomRef.current) {
+      console.log('[RoomLobby] 방 나가기 중이므로 입장 시도하지 않음');
+      return;
+    }
+    
+    // 이미 같은 방에 있으면 중복 입장 방지
+    if (currentRoom === roomId) {
+      console.log('[RoomLobby] 이미 방에 입장되어 있음:', roomId);
+      return;
+    }
+    
+    // 이미 입장 시도 중이면 무시
+    if (joinAttemptedRef.current) {
+      console.log('[RoomLobby] 이미 방 입장 시도 중:', roomId);
+      return;
+    }
+    
+    // 기존 타이머가 있으면 취소
+    if (joinTimeoutRef.current) {
+      clearTimeout(joinTimeoutRef.current);
+      joinTimeoutRef.current = null;
+    }
     
     console.log('[RoomLobby] 방 입장 시도:', roomId);
+    joinAttemptedRef.current = true;
+    
+    // 방 입장 시도
     joinRoom(roomId).then(() => {
       console.log('[RoomLobby] 방 입장 성공:', roomId);
+      joinAttemptedRef.current = false;
+      
+      // 방 입장 성공 후 방 정보 즉시 갱신
+      console.log('[RoomLobby] 방 입장 후 방 정보 갱신');
+      getRoom(roomId).then(res => {
+        console.log('[RoomLobby] 방 입장 후 방 정보 갱신 완료:', res.data);
+        setRoom(res.data);
+      }).catch(error => {
+        console.error('[RoomLobby] 방 입장 후 방 정보 갱신 실패:', error);
+      });
     }).catch(error => {
       console.error('[RoomLobby] 방 입장 실패:', error);
+      joinAttemptedRef.current = false;
+      
+      // 방이 삭제된 경우 홈으로 이동
+      if (error.message === 'Room has been deleted') {
+        console.log('[RoomLobby] 방이 삭제됨, 홈으로 이동');
+        alert('방이 삭제되었습니다.');
+        navigate('/home');
+        return;
+      }
+      
+      // 재입장 대기 에러인 경우 조용히 처리 (사용자에게 에러 표시하지 않음)
+      if (error.message === 'Please wait before rejoining the room') {
+        console.log('[RoomLobby] 재입장 대기, 1초 후 재시도');
+        joinTimeoutRef.current = setTimeout(() => {
+          console.log('[RoomLobby] 재입장 재시도:', roomId);
+          joinAttemptedRef.current = false;
+        }, 1000);
+        return;
+      }
+      
+      // 기타 에러는 재시도하지 않음
+      if (error.message !== 'Already joining this room' && 
+          error.message !== 'Already joining another room' &&
+          error.message !== 'Already in room') {
+        joinTimeoutRef.current = setTimeout(() => {
+          console.log('[RoomLobby] 방 입장 재시도:', roomId);
+          joinAttemptedRef.current = false;
+        }, 3000);
+      }
     });
-  }, [isConnected, roomId, socket, joinRoom]);
+  }, [isConnected, roomId, socket]); // currentRoom 의존성 제거
+
+  // 컴포넌트 언마운트 시 타이머 정리
+  useEffect(() => {
+    return () => {
+      if (joinTimeoutRef.current) {
+        clearTimeout(joinTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // 소켓 레디 이벤트 리스너
   useEffect(() => {
@@ -124,6 +237,18 @@ const RoomLobby: React.FC = () => {
     if (!socket || !roomId) return;
     const handleRoomDeleted = (data: any) => {
       if (data.room_id === roomId) {
+        console.log('[RoomLobby] 방 삭제 이벤트 수신:', data);
+        
+        // 방 입장 시도 중이면 중단
+        if (joinAttemptedRef.current) {
+          console.log('[RoomLobby] 방 입장 시도 중단 (방 삭제됨)');
+          joinAttemptedRef.current = false;
+          if (joinTimeoutRef.current) {
+            clearTimeout(joinTimeoutRef.current);
+            joinTimeoutRef.current = null;
+          }
+        }
+        
         alert('방이 삭제되었습니다.');
         navigate('/home');
       }
@@ -132,14 +257,54 @@ const RoomLobby: React.FC = () => {
     return () => { socket.off(SocketEventType.ROOM_DELETED, handleRoomDeleted); };
   }, [socket, roomId, navigate]);
 
-  // 플레이어 입장/퇴장 시 방 정보 갱신
+  // 플레이어 입장/퇴장 시 방 정보 갱신 (개선된 로직)
   useEffect(() => {
     if (!socket || !roomId) return;
     
+    let refreshTimeout: NodeJS.Timeout | null = null;
+    let isRefreshing = false; // 중복 호출 방지 플래그
+    let lastRefreshTime = 0; // 마지막 갱신 시간
+    
     const handlePlayerChange = () => {
-      console.log('[RoomLobby] 플레이어 변경 감지, 방 정보 갱신');
-      // 방 정보 다시 받아오기
-      getRoom(roomId).then(res => setRoom(res.data));
+      console.log('[RoomLobby] 플레이어 변경 감지, 방 정보 갱신 예약');
+      
+      const now = Date.now();
+      
+      // 이미 갱신 중이면 무시
+      if (isRefreshing) {
+        console.log('[RoomLobby] 이미 갱신 중이므로 무시');
+        return;
+      }
+      
+      // 마지막 갱신으로부터 500ms 이내면 무시 (2초에서 500ms로 단축)
+      if (now - lastRefreshTime < 500) {
+        console.log('[RoomLobby] 마지막 갱신으로부터 500ms 이내이므로 무시');
+        return;
+      }
+      
+      // 기존 타이머가 있으면 취소
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+        refreshTimeout = null;
+      }
+      
+      // 300ms 후 방 정보 갱신 (1초에서 300ms로 단축)
+      refreshTimeout = setTimeout(() => {
+        if (isRefreshing) return; // 중복 방지
+        
+        console.log('[RoomLobby] 방 정보 갱신 실행');
+        isRefreshing = true;
+        lastRefreshTime = Date.now();
+        
+        getRoom(roomId).then(res => {
+          console.log('[RoomLobby] 방 정보 갱신 완료:', res.data);
+          setRoom(res.data);
+          isRefreshing = false;
+        }).catch(error => {
+          console.error('[RoomLobby] 방 정보 갱신 실패:', error);
+          isRefreshing = false;
+        });
+      }, 300); // 1초에서 300ms로 단축
     };
 
     socket.on(SocketEventType.JOIN_ROOM, handlePlayerChange);
@@ -148,12 +313,17 @@ const RoomLobby: React.FC = () => {
     return () => {
       socket.off(SocketEventType.JOIN_ROOM, handlePlayerChange);
       socket.off(SocketEventType.LEAVE_ROOM, handlePlayerChange);
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+      }
     };
   }, [socket, roomId, getRoom]);
 
   // 게임 시작/종료 이벤트 리스너
   useEffect(() => {
     if (!socket || !roomId) return;
+    
+    let isRefreshing = false; // 중복 호출 방지 플래그
     
     const handleGameStart = (data: any) => {
       if (data.room_id === roomId) {
@@ -162,11 +332,18 @@ const RoomLobby: React.FC = () => {
         setGameStarting(false);
         setChatType('game'); // 채팅 타입을 게임으로 변경
         
-        // 방 정보 새로고침하여 서버 상태와 동기화
-        getRoom(roomId).then(res => {
-          console.log('[RoomLobby] 게임 시작 후 방 정보 새로고침');
-          setRoom(res.data);
-        });
+        // 게임 시작 시 방 정보 갱신 (중복 방지)
+        if (!isRefreshing) {
+          isRefreshing = true;
+          getRoom(roomId).then(res => {
+            console.log('[RoomLobby] 게임 시작 후 방 정보 갱신');
+            setRoom(res.data);
+            isRefreshing = false;
+          }).catch(error => {
+            console.error('[RoomLobby] 게임 시작 후 방 정보 갱신 실패:', error);
+            isRefreshing = false;
+          });
+        }
         
         // 게임 페이지로 이동
         navigate(`/game/${roomId}`);
@@ -185,11 +362,18 @@ const RoomLobby: React.FC = () => {
         setReadyPlayers(new Set());
         setMyReadyState(false);
         
-        // 방 정보 새로고침하여 서버 상태와 동기화
-        getRoom(roomId).then(res => {
-          console.log('[RoomLobby] 게임 종료 후 방 정보 새로고침');
-          setRoom(res.data);
-        });
+        // 게임 종료 시 방 정보 갱신 (중복 방지)
+        if (!isRefreshing) {
+          isRefreshing = true;
+          getRoom(roomId).then(res => {
+            console.log('[RoomLobby] 게임 종료 후 방 정보 갱신');
+            setRoom(res.data);
+            isRefreshing = false;
+          }).catch(error => {
+            console.error('[RoomLobby] 게임 종료 후 방 정보 갱신 실패:', error);
+            isRefreshing = false;
+          });
+        }
         
         // 게임 페이지에 있다면 로비로 강제 이동
         if (window.location.pathname.includes('/game/')) {
@@ -225,42 +409,37 @@ const RoomLobby: React.FC = () => {
 
   // 버튼 핸들러
   const handleLeaveRoom = () => { 
-    if (socket && roomId) {
-      socket.emit(SocketEventType.LEAVE_ROOM, { room_id: roomId });
+    if (roomId) {
+      leavingRoomRef.current = true; // 방 나가기 중임을 표시
+      leaveRoom();
     }
     navigate('/home'); 
   };
+  
   const handleToggleReady = () => {
-    if (!roomId || !socket?.connected || !profile) return;
+    if (!roomId || !profile) return;
     const newReadyState = !myReadyState;
-    socket.emit(SocketEventType.READY, { room_id: roomId, ready: newReadyState });
+    toggleReady(roomId, newReadyState);
     setMyReadyState(newReadyState);
   };
+  
   const handleStartGame = () => {
-    if (!roomId || !socket?.connected) return;
+    if (!roomId) return;
     setGameStarting(true);
-    
-    // Socket 이벤트로만 게임 시작 요청
-    socket.emit(SocketEventType.START_GAME, { room_id: roomId });
-    
+    startGame(roomId);
     // 서버에서 응답이 오면 handleGameStart에서 setGameStarting(false) 처리
   };
 
   const handleFinishGame = async () => {
-    console.log('[RoomLobby] 게임 종료 버튼 클릭:', { roomId, socketConnected: socket?.connected });
-    if (!roomId || !socket?.connected) {
-      console.error('[RoomLobby] 게임 종료 실패: 조건 불만족', { roomId, socketConnected: socket?.connected });
+    console.log('[RoomLobby] 게임 종료 버튼 클릭:', { roomId });
+    if (!roomId) {
+      console.error('[RoomLobby] 게임 종료 실패: roomId 없음');
       return;
     }
     
     try {
-      // Socket 이벤트로 게임 종료 요청
-      console.log('[RoomLobby] FINISH_GAME 이벤트 전송:', { room_id: roomId });
-      socket.emit(SocketEventType.FINISH_GAME, { room_id: roomId });
+      finishGame(roomId);
       console.log('[RoomLobby] FINISH_GAME 이벤트 전송 완료');
-      
-      // API 호출도 함께 (서버에서 방 상태 업데이트)
-      // await endGame(roomId); // endGame API가 있다면 사용
     } catch (error) {
       console.error('[RoomLobby] 게임 종료 실패:', error);
       alert('게임 종료에 실패했습니다.');

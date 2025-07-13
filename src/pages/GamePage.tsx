@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApi } from '../hooks/useApi';
 import { useAuthStore } from '../stores/authStore';
+import { useSocketStore } from '../stores/socketStore';
 import { useSocket } from '../hooks/useSocket';
 import ChatBox from '../components/common/ChatBox';
 import { SocketEventType } from '../types/socket';
@@ -11,13 +12,20 @@ const GamePage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
   const { getRoom, getMyProfile, getChatHistory } = useApi();
-  const { socket, isConnected, currentRoom } = useSocket({ 
+  const { 
+    socket, 
+    isConnected, 
+    currentRoom,
+    joinRoom, 
+    leaveRoom, 
+    finishGame 
+  } = useSocket({
     token: useAuthStore.getState().accessToken || '',
-    onRoomRejoin: (roomId: string) => {
-      console.log('[GamePage] 재연결 후 방 정보 갱신:', roomId);
-      getRoom(roomId).then(res => setRoom(res.data));
-    }
   });
+  
+  // 방 입장 시도 상태 추적
+  const joinAttemptedRef = useRef(false);
+  const joinTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [room, setRoom] = useState<any>(null);
   const [profile, setProfile] = useState<UserProfileResponse | null>(null);
@@ -38,7 +46,7 @@ const GamePage: React.FC = () => {
     });
   }, [roomId]);
 
-  // 소켓 연결 후 방 입장 확인
+  // 소켓 연결 후 방 입장 확인 (개선된 로직)
   useEffect(() => {
     if (!isConnected || !roomId || !socket?.connected) {
       console.log('[GamePage] 방 입장 조건 불만족:', { isConnected, roomId, socketConnected: socket?.connected });
@@ -51,15 +59,76 @@ const GamePage: React.FC = () => {
       return;
     }
     
+    // 이미 입장 시도 중이면 무시
+    if (joinAttemptedRef.current) {
+      console.log('[GamePage] 이미 방 입장 시도 중:', roomId);
+      return;
+    }
+    
+    // 기존 타이머가 있으면 취소
+    if (joinTimeoutRef.current) {
+      clearTimeout(joinTimeoutRef.current);
+      joinTimeoutRef.current = null;
+    }
+    
     console.log('[GamePage] 방 입장 시도:', roomId);
-    socket.emit(SocketEventType.JOIN_ROOM, { room_id: roomId }, (response: any) => {
-      if (response?.error) {
-        console.error('[GamePage] 방 입장 실패:', response.error);
-      } else {
-        console.log('[GamePage] 방 입장 성공:', roomId);
+    joinAttemptedRef.current = true;
+    
+    // 방 입장 시도
+    joinRoom(roomId).then(() => {
+      console.log('[GamePage] 방 입장 성공:', roomId);
+      joinAttemptedRef.current = false;
+      
+      // 방 입장 성공 후 방 정보 즉시 갱신
+      console.log('[GamePage] 방 입장 후 방 정보 갱신');
+      getRoom(roomId).then(res => {
+        console.log('[GamePage] 방 입장 후 방 정보 갱신 완료:', res.data);
+        setRoom(res.data);
+      }).catch(error => {
+        console.error('[GamePage] 방 입장 후 방 정보 갱신 실패:', error);
+      });
+    }).catch(error => {
+      console.error('[GamePage] 방 입장 실패:', error);
+      joinAttemptedRef.current = false;
+      
+      // 방이 삭제된 경우 홈으로 이동
+      if (error.message === 'Room has been deleted') {
+        console.log('[GamePage] 방이 삭제됨, 홈으로 이동');
+        alert('방이 삭제되었습니다.');
+        navigate('/home');
+        return;
+      }
+      
+      // 재입장 대기 에러인 경우 조용히 처리 (사용자에게 에러 표시하지 않음)
+      if (error.message === 'Please wait before rejoining the room') {
+        console.log('[GamePage] 재입장 대기, 1초 후 재시도');
+        joinTimeoutRef.current = setTimeout(() => {
+          console.log('[GamePage] 재입장 재시도:', roomId);
+          joinAttemptedRef.current = false;
+        }, 1000);
+        return;
+      }
+      
+      // 기타 에러는 재시도하지 않음
+      if (error.message !== 'Already joining this room' && 
+          error.message !== 'Already joining another room' &&
+          error.message !== 'Already in room') {
+        joinTimeoutRef.current = setTimeout(() => {
+          console.log('[GamePage] 방 입장 재시도:', roomId);
+          joinAttemptedRef.current = false;
+        }, 3000);
       }
     });
-  }, [isConnected, roomId, socket, currentRoom]);
+  }, [isConnected, roomId, socket, currentRoom]); // joinRoom 의존성 제거
+
+  // 컴포넌트 언마운트 시 타이머 정리
+  useEffect(() => {
+    return () => {
+      if (joinTimeoutRef.current) {
+        clearTimeout(joinTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // 게임에서는 채팅 히스토리가 필요 없음
   // useEffect(() => {
@@ -79,15 +148,24 @@ const GamePage: React.FC = () => {
     
     console.log('[GamePage] START_GAME, FINISH_GAME 이벤트 리스너 등록 시도:', { socket: !!socket, roomId, socketConnected: socket?.connected });
     
+    let isRefreshing = false; // 중복 호출 방지 플래그
+    
     const handleGameStart = (data: any) => {
       console.log('[GamePage] START_GAME 이벤트 수신:', data);
       if (data.room_id === roomId) {
         console.log('[GamePage] 게임 시작됨:', data);
-        // 방 정보 새로고침하여 서버 상태와 동기화
-        getRoom(roomId).then(res => {
-          console.log('[GamePage] 게임 시작 후 방 정보 새로고침');
-          setRoom(res.data);
-        });
+        // 게임 시작 시 방 정보 갱신 (중복 방지)
+        if (!isRefreshing) {
+          isRefreshing = true;
+          getRoom(roomId).then(res => {
+            console.log('[GamePage] 게임 시작 후 방 정보 갱신');
+            setRoom(res.data);
+            isRefreshing = false;
+          }).catch(error => {
+            console.error('[GamePage] 게임 시작 후 방 정보 갱신 실패:', error);
+            isRefreshing = false;
+          });
+        }
       } else {
         console.log('[GamePage] 다른 방의 게임 시작 이벤트 무시:', data.room_id, '!=', roomId);
       }
@@ -120,6 +198,18 @@ const GamePage: React.FC = () => {
     if (!socket || !roomId) return;
     const handleRoomDeleted = (data: any) => {
       if (data.room_id === roomId) {
+        console.log('[GamePage] 방 삭제 이벤트 수신:', data);
+        
+        // 방 입장 시도 중이면 중단
+        if (joinAttemptedRef.current) {
+          console.log('[GamePage] 방 입장 시도 중단 (방 삭제됨)');
+          joinAttemptedRef.current = false;
+          if (joinTimeoutRef.current) {
+            clearTimeout(joinTimeoutRef.current);
+            joinTimeoutRef.current = null;
+          }
+        }
+        
         alert('방이 삭제되었습니다.');
         navigate('/home');
       }
@@ -136,23 +226,21 @@ const GamePage: React.FC = () => {
 
   // 버튼 핸들러
   const handleLeaveGame = () => { 
-    if (socket && roomId) {
-      socket.emit(SocketEventType.LEAVE_ROOM, { room_id: roomId });
+    if (roomId) {
+      leaveRoom();
     }
     navigate('/home'); 
   };
 
   const handleFinishGame = () => {
-    console.log('[GamePage] 게임 종료 버튼 클릭:', { roomId, socketConnected: socket?.connected });
-    if (!roomId || !socket?.connected) {
-      console.error('[GamePage] 게임 종료 실패: 조건 불만족', { roomId, socketConnected: socket?.connected });
+    console.log('[GamePage] 게임 종료 버튼 클릭:', { roomId });
+    if (!roomId) {
+      console.error('[GamePage] 게임 종료 실패: roomId 없음');
       return;
     }
     
     try {
-      // Socket 이벤트로만 게임 종료 요청
-      console.log('[GamePage] FINISH_GAME 이벤트 전송:', { room_id: roomId });
-      socket.emit(SocketEventType.FINISH_GAME, { room_id: roomId });
+      finishGame(roomId);
       console.log('[GamePage] FINISH_GAME 이벤트 전송 완료');
     } catch (error) {
       console.error('[GamePage] 게임 종료 실패:', error);

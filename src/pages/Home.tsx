@@ -4,9 +4,8 @@ import { useApi } from '../hooks/useApi';
 import { useAuthStore } from '../stores/authStore';
 import { RoomListResponse, RoomCreateRequest, UserProfileResponse } from '../services/api';
 import { useProfile } from '../hooks/useProfile';
-import { useSocket } from '../hooks/useSocket';
 import { SocketEventType } from '../types/socket';
-
+import { useSocket } from '../hooks/useSocket';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -17,20 +16,18 @@ const Home: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
   const [autoRefreshInterval, setAutoRefreshInterval] = useState<number>(5); // 0: 비활성화, 1, 5, 10초 (기본값: 5초)
+  
   // 인증 관련 user는 그대로 두고, 나머지는 profile 사용
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const { getRooms, createRoom, logout: apiLogout } = useApi();
-  const { logout } = useAuthStore();
+  const { socket, isConnected } = useSocket({
+    token: useAuthStore.getState().accessToken || '',
+  });
   const { getMyProfile } = useProfile();
   const [profile, setProfile] = useState<UserProfileResponse | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   
-  // 소켓 연결
-  const { socket } = useSocket({ 
-    token: useAuthStore.getState().accessToken || ''
-  });
-
   // 방 생성 폼 상태
   const [createForm, setCreateForm] = useState<RoomCreateRequest>({
     title: '',

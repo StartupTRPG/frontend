@@ -1,21 +1,27 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { ChatMessage, SocketEventType } from '../../types/socket';
-import { useChat } from '../../hooks/useChat';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Socket } from 'socket.io-client';
+import { SocketEventType } from '../../types/socket';
 import { UserProfileResponse } from '../../services/api';
+import { useSocket } from '../../hooks/useSocket';
+import { useApi } from '../../hooks/useApi';
+import { useAuthStore } from '../../stores/authStore';
 
 interface ChatBoxProps {
   roomId: string;
-  socket: any;
-  profile: UserProfileResponse;
-  chatType?: 'lobby' | 'game';
-  initialMessages?: ChatMessage[];
+  socket: Socket | null;
+  profile: UserProfileResponse | null;
+  chatType: 'lobby' | 'game';
+  initialMessages?: any[];
 }
 
 const ChatBox: React.FC<ChatBoxProps> = ({ roomId, socket, profile, chatType = 'lobby', initialMessages = [] }) => {
-  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
+  const [messages, setMessages] = useState<any[]>(initialMessages);
   const [input, setInput] = useState('');
   const [isComposing, setIsComposing] = useState(false);
-  const { getChatHistory } = useChat();
+  const { getChatHistory } = useApi();
+  const { sendLobbyMessage, sendGameMessage } = useSocket({
+    token: useAuthStore.getState().accessToken || '',
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // 채팅 기록 불러오기
@@ -45,7 +51,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ roomId, socket, profile, chatType = '
   }, [roomId, getChatHistory, initialMessages.length, chatType]);
 
   // 소켓 메시지 핸들러
-  const handleChatMessage = useCallback((msg: ChatMessage) => {
+  const handleChatMessage = useCallback((msg: any) => {
     console.log(`[ChatBox] 메시지 수신: ${msg.message} (${msg.id}) - 타입: ${msg.message_type}, 현재 채팅 타입: ${chatType}`);
     
     // 채팅 타입에 따라 메시지 필터링
@@ -69,32 +75,26 @@ const ChatBox: React.FC<ChatBoxProps> = ({ roomId, socket, profile, chatType = '
   const sendMessage = useCallback(() => {
     console.log('[ChatBox] 메시지 전송 시도:', { input: input.trim(), socket: !!socket, profile: !!profile, chatType });
     
-    if (!input.trim() || !socket || !profile) {
+    if (!input.trim() || !profile) {
       console.log('[ChatBox] 메시지 전송 실패: 조건 불만족');
       return;
     }
     
     const messageText = input.trim();
-    const messageData = {
-      room_id: roomId,
-      message: messageText,
-      message_type: chatType, // 'lobby' 또는 'game'
-    };
-
-    console.log('[ChatBox] 메시지 데이터:', messageData);
+    console.log('[ChatBox] 메시지 데이터:', { roomId, messageText, chatType });
 
     // 낙관적 업데이트 제거 - 서버에서 broadcast로 받은 메시지만 표시
     setInput('');
 
-    // 채팅 타입에 따라 다른 이벤트로 전송
+    // 채팅 타입에 따라 다른 메서드 사용
     if (chatType === 'game') {
-      console.log('[ChatBox] GAME_MESSAGE 이벤트 전송');
-      socket.emit(SocketEventType.GAME_MESSAGE, messageData);
+      console.log('[ChatBox] 게임 메시지 전송');
+      sendGameMessage(roomId, messageText);
     } else {
-      console.log('[ChatBox] LOBBY_MESSAGE 이벤트 전송');
-      socket.emit(SocketEventType.LOBBY_MESSAGE, messageData);
+      console.log('[ChatBox] 로비 메시지 전송');
+      sendLobbyMessage(roomId, messageText);
     }
-  }, [input, socket, profile, roomId, chatType]);
+  }, [input, profile, roomId, chatType, sendLobbyMessage, sendGameMessage]);
 
   // 한글 조합 상태 핸들러
   const handleCompositionStart = useCallback(() => setIsComposing(true), []);
@@ -186,8 +186,8 @@ const ChatBox: React.FC<ChatBoxProps> = ({ roomId, socket, profile, chatType = '
           <div key={msg.id || idx} style={{ marginBottom: 8 }}>
             <div>
               <span style={{
-                fontWeight: String(msg.profile_id) === String(profile.id) ? 700 : 500,
-                color: String(msg.profile_id) === String(profile.id) ? '#1976d2' : '#333'
+                fontWeight: String(msg.profile_id) === String(profile?.id) ? 700 : 500,
+                color: String(msg.profile_id) === String(profile?.id) ? '#1976d2' : '#333'
               }}>
                 {msg.display_name}
               </span>
