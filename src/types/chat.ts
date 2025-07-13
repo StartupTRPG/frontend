@@ -1,14 +1,12 @@
 export interface ChatMessageResponse {
   id: string;
   room_id: string;
-  user_id: string;
-  username: string;
+  profile_id: string;
   display_name: string;
-  message_type: 'text' | 'system';
+  message_type: 'lobby' | 'game';
   message: string;
   timestamp: string;
   encrypted: boolean;
-  chat_category?: 'lobby' | 'game' | 'general';
 }
 
 export interface RoomChatHistoryResponse {
@@ -17,7 +15,21 @@ export interface RoomChatHistoryResponse {
   total_count: number;
   page: number;
   limit: number;
-  chat_category?: 'lobby' | 'game' | 'general';
+}
+
+export interface GetChatHistoryResponse {
+  data: RoomChatHistoryResponse;
+  message: string;
+  success: boolean;
+}
+
+export interface DeleteChatHistoryResponse {
+  data: {
+    deleted_count: number;
+    room_id: string;
+  };
+  message: string;
+  success: boolean;
 }
 
 export interface ChatHistoryRequest {

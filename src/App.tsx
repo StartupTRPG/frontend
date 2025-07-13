@@ -3,6 +3,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
 import RoomLobby from './pages/RoomLobby';
+import CreateProfile from './pages/CreateProfile';
 import NotFound from './pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
 import Loading from './components/common/Loading';
@@ -107,6 +108,16 @@ function AppWithSocket() {
             <ProtectedRoute>
               <ErrorBoundary>
                 <RoomLobby />
+              </ErrorBoundary>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/create-profile" 
+          element={
+            <ProtectedRoute>
+              <ErrorBoundary>
+                <CreateProfile />
               </ErrorBoundary>
             </ProtectedRoute>
           } 

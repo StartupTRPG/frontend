@@ -120,8 +120,8 @@ const ChatBox: React.FC<ChatBoxProps> = ({ roomId, socket, user, chatType = 'lob
         {messages.map((msg, idx) => (
           <div key={msg.id || idx} style={{ marginBottom: 8 }}>
             <div>
-              <span style={{ fontWeight: msg.user_id === user?.id ? 700 : 500, color: msg.user_id === user?.id ? '#1976d2' : '#333' }}>
-                {msg.display_name || msg.username}
+              <span style={{ fontWeight: msg.profile_id === user?.id ? 700 : 500, color: msg.profile_id === user?.id ? '#1976d2' : '#333' }}>
+                {msg.display_name}
               </span>
               <span style={{ marginLeft: 8, color: '#aaa', fontSize: 12 }}>{new Date(msg.timestamp).toLocaleTimeString()}</span>
               <div style={{ marginLeft: 4 }}>{msg.message}</div>

@@ -17,10 +17,8 @@ export interface User {
   id: string;
   username: string;
   email: string;
-  nickname: string;
   created_at: string;
-  last_login: string;
-  updated_at: string;
+  updated_at?: string;
 }
 
 export interface LoginResponse {
@@ -118,6 +116,7 @@ export interface GetChatHistoryResponse {
 export interface DeleteChatHistoryResponse {
   data: {
     deleted_count: number;
+    room_id: string;
   };
   message: string;
   success: boolean;
@@ -125,9 +124,9 @@ export interface DeleteChatHistoryResponse {
 
 export interface DeleteAccountResponse {
   data: {
-    instructions: {
-      client_action: string;
-    };
+    user_id: string;
+    username: string;
+    deleted_at: string;
   };
   message: string;
   success: boolean;
@@ -193,7 +192,6 @@ export interface RoomUpdateRequest {
   description?: string;
   max_players?: number;
   visibility?: 'public' | 'private';
-  password?: string;
   game_settings?: Record<string, any>;
 }
 
@@ -201,8 +199,8 @@ export interface RoomResponse {
   id: string;
   title: string;
   description: string;
-  host_id: string;
-  host_username: string;
+  host_profile_id: string;
+  host_display_name: string;
   max_players: number;
   current_players: number;
   status: 'waiting' | 'playing' | 'finished';
@@ -217,8 +215,8 @@ export interface RoomListResponse {
   id: string;
   title: string;
   description: string;
-  host_id: string;
-  host_username: string;
+  host_profile_id: string;
+  host_display_name: string;
   max_players: number;
   current_players: number;
   status: 'waiting' | 'playing' | 'finished';
@@ -229,8 +227,8 @@ export interface RoomListResponse {
 }
 
 export interface RoomPlayerResponse {
-  user_id: string;
-  username: string;
+  profile_id: string;
+  display_name: string;
   role: 'host' | 'player' | 'observer';
   joined_at: string;
 }
@@ -246,8 +244,7 @@ export interface RoomChatHistoryResponse {
 export interface ChatMessageResponse {
   id: string;
   room_id: string;
-  user_id: string;
-  username: string;
+  profile_id: string;
   display_name: string;
   message_type: 'lobby' | 'game';
   message: string;
@@ -474,8 +471,8 @@ class ApiService {
     );
   }
 
-  async getUserProfile(accessToken: string, userId: string): Promise<GetUserProfileResponse> {
-    return this.request<GetUserProfileResponse>(`/profile/user/${userId}`, {
+  async getUserProfile(accessToken: string, profileId: string): Promise<GetUserProfileResponse> {
+    return this.request<GetUserProfileResponse>(`/profile/${profileId}`, {
       method: 'GET',
       ...this.withAuthHeader({}, accessToken),
     });
@@ -511,6 +508,7 @@ class ApiService {
     search?: string;
     page?: number;
     limit?: number;
+    exclude_playing?: boolean;
   }): Promise<ApiResponse<RoomListResponse[]>> {
     const queryParams = new URLSearchParams();
     if (params?.status) queryParams.append('status', params.status);
@@ -518,6 +516,7 @@ class ApiService {
     if (params?.search) queryParams.append('search', params.search);
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.exclude_playing !== undefined) queryParams.append('exclude_playing', params.exclude_playing.toString());
 
     const endpoint = `/rooms${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     return this.request<ApiResponse<RoomListResponse[]>>(endpoint, {

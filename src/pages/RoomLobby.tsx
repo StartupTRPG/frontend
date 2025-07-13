@@ -18,6 +18,8 @@ const RoomLobby: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [myProfile, setMyProfile] = useState<any>(null);
   const [chatHistory, setChatHistory] = useState<any[]>([]);
+  const [hasJoinedRoom, setHasJoinedRoom] = useState(false); // 방 입장 상태 추적
+  const [profileLoading, setProfileLoading] = useState(true); // 프로필 로딩 상태
   const { user } = useAuthStore();
   const { getRoom, startGame, endGame, getMyProfile, getMyRoom, getChatHistory } = useApi();
   const { isConnected, error: connectionError, joinRoom, leaveRoom, socket } = useSocket({
@@ -37,31 +39,33 @@ const RoomLobby: React.FC = () => {
     },
   });
 
-  // 1. useLocation import 및 password 변수 삭제
-  // const location = useLocation();
-  // const password = location.state?.password;
-
   useEffect(() => {
     if (!roomId) return;
 
-    // 먼저 방 정보를 가져와서 방이 존재하는지 확인
-    fetchRoom();
+    // 먼저 프로필을 확인하고, 방 정보를 가져옴
     fetchMyProfile();
+    fetchRoom();
   }, [roomId]);
 
-  // 방 정보를 성공적으로 가져온 후에만 소켓 연결 및 입장
+  // 프로필과 방 정보를 모두 가져온 후에만 소켓 연결 및 입장
   useEffect(() => {
-    if (!roomId || !room || !isConnected) return;
+    if (!roomId || !room || !isConnected || !myProfile || hasJoinedRoom) return;
 
+    console.log('[RoomLobby] 방 입장 시도:', { roomId, isConnected, hasProfile: !!myProfile });
+    
     fetchChatHistory(); // 채팅 이력 가져오기
 
-    // 방이 존재할 때만 소켓으로 입장
-    joinRoom(roomId).catch((error) => {
-      setError('방 입장에 실패했습니다. 소켓 연결을 확인해주세요.');
-    });
-  }, [roomId, room, isConnected]);
-
-
+    // 방이 존재하고 프로필이 있을 때만 소켓으로 입장
+    joinRoom(roomId)
+      .then(() => {
+        console.log('[RoomLobby] 방 입장 성공');
+        setHasJoinedRoom(true);
+      })
+      .catch((error) => {
+        console.error('[RoomLobby] 방 입장 실패:', error);
+        setError('방 입장에 실패했습니다. 소켓 연결을 확인해주세요.');
+      });
+  }, [roomId, room, isConnected, myProfile, hasJoinedRoom]);
 
   const fetchRoom = async () => {
     try {
@@ -77,10 +81,24 @@ const RoomLobby: React.FC = () => {
 
   const fetchMyProfile = async () => {
     try {
+      setProfileLoading(true);
       const response = await getMyProfile();
+      console.log('[RoomLobby] 프로필 조회 성공:', response);
       setMyProfile(response);
     } catch (error) {
-      console.error('프로필 조회 실패:', error);
+      console.error('[RoomLobby] 프로필 조회 실패:', error);
+      
+      // 프로필이 없는 경우 프로필 생성 페이지로 이동
+      if (error instanceof Error && error.message.includes('Profile not found')) {
+        alert('프로필이 없습니다. 프로필을 먼저 생성해주세요.');
+        navigate('/create-profile');
+        return;
+      }
+      
+      // 다른 에러의 경우 사용자에게 알림
+      alert('프로필 조회에 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      setProfileLoading(false);
     }
   };
 
@@ -131,6 +149,7 @@ const RoomLobby: React.FC = () => {
       if (socket?.connected) {
         socket.emit(SocketEventType.LEAVE_ROOM, { room_id: roomId });
       }
+      setHasJoinedRoom(false); // 방 입장 상태 초기화
       navigate('/home');
     } catch (error) {
       console.error('방 퇴장 실패:', error);
@@ -178,7 +197,7 @@ const RoomLobby: React.FC = () => {
   };
 
   // 프로필 정보를 사용하여 호스트 여부 확인
-  const isHost = room?.host_id === user?.id;
+  const isHost = room?.host_profile_id === myProfile?.user_id;
 
   if (connectionError && room) {
     // 방이 존재할 때만 소켓 연결 오류 표시
@@ -200,8 +219,8 @@ const RoomLobby: React.FC = () => {
     );
   }
 
-  if (loading) {
-    return <div>방 정보를 불러오는 중...</div>;
+  if (loading || profileLoading) {
+    return <div>정보를 불러오는 중...</div>;
   }
 
   // 에러 발생 시 NotFound로 리다이렉트
@@ -211,6 +230,19 @@ const RoomLobby: React.FC = () => {
 
   if (!room) {
     return <NotFound />;
+  }
+
+  // 프로필이 없으면 프로필 생성 페이지로 이동
+  if (!myProfile) {
+    return (
+      <div style={{ padding: '20px', textAlign: 'center' }}>
+        <h2>프로필이 필요합니다</h2>
+        <p>방에 참가하기 전에 프로필을 먼저 생성해주세요.</p>
+        <button onClick={() => navigate('/create-profile')}>
+          프로필 생성하기
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -248,7 +280,7 @@ const RoomLobby: React.FC = () => {
         {room.description && <p style={{ margin: '5px 0', color: '#666' }}>{room.description}</p>}
         
         <div style={{ display: 'flex', gap: '20px', fontSize: '14px' }}>
-          <span><strong>방장:</strong> {room.host_username}</span>
+          <span><strong>방장:</strong> {room.host_display_name}</span>
           <span><strong>인원:</strong> {room.current_players}/{room.max_players}</span>
           <span><strong>상태:</strong> {getStatusText(room.status)}</span>
           <span><strong>공개:</strong> {getVisibilityText(room.visibility)}</span>
@@ -306,7 +338,7 @@ const RoomLobby: React.FC = () => {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {room.players.map((player) => (
-                  <div key={player.user_id} style={{ 
+                  <div key={player.profile_id} style={{ 
                     border: '1px solid #ddd', 
                     padding: '12px', 
                     borderRadius: '6px',
@@ -314,7 +346,7 @@ const RoomLobby: React.FC = () => {
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
-                        <strong>{player.username}</strong>
+                        <strong>{player.display_name}</strong>
                         {player.role === 'host' && <span style={{ color: 'blue', marginLeft: '10px' }}>👑 방장</span>}
                       </div>
                       <small style={{ color: '#666' }}>

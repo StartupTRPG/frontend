@@ -32,8 +32,8 @@ export const useApi = () => {
       authenticatedRequest(token => apiService.updateMyProfile(token, userData)),
     createProfile: (profileData: UserProfileCreate) =>
       authenticatedRequest(token => apiService.createProfile(token, profileData)),
-    getUserProfile: (userId: string) =>
-      authenticatedRequest(token => apiService.getUserProfile(token, userId)),
+    getUserProfile: (profileId: string) =>
+      authenticatedRequest(token => apiService.getUserProfile(token, profileId)),
     searchProfiles: (query: string, limit?: number) =>
       authenticatedRequest(token => apiService.searchProfiles(token, query, limit)),
     getRooms: (params?: any) => authenticatedRequest(token => apiService.getRooms(token, params)),

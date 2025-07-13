@@ -32,12 +32,15 @@ export const useRoom = () => {
     search?: string;
     page?: number;
     limit?: number;
+    exclude_playing?: boolean;
   }) => {
+    if (!accessToken) throw new Error('인증이 필요합니다.');
+    
     setLoading(true);
     setError(null);
     
     try {
-      const response = await apiService.getRooms(params);
+      const response = await apiService.getRooms(accessToken, params);
       return response.data;
     } catch (error) {
       const message = error instanceof Error ? error.message : '방 목록 조회 중 오류가 발생했습니다.';
@@ -48,17 +51,17 @@ export const useRoom = () => {
     }
   };
 
-  const getMyRooms = async () => {
+  const getMyRoom = async () => {
     if (!accessToken) throw new Error('인증이 필요합니다.');
     
     setLoading(true);
     setError(null);
     
     try {
-      const response = await apiService.getMyRooms(accessToken);
+      const response = await apiService.getMyRoom(accessToken);
       return response.data;
     } catch (error) {
-      const message = error instanceof Error ? error.message : '내 방 목록 조회 중 오류가 발생했습니다.';
+      const message = error instanceof Error ? error.message : '내 방 조회 중 오류가 발생했습니다.';
       setError(message);
       throw error;
     } finally {
@@ -67,11 +70,13 @@ export const useRoom = () => {
   };
 
   const getRoom = async (roomId: string) => {
+    if (!accessToken) throw new Error('인증이 필요합니다.');
+    
     setLoading(true);
     setError(null);
     
     try {
-      const response = await apiService.getRoom(roomId);
+      const response = await apiService.getRoom(accessToken, roomId);
       return response.data;
     } catch (error) {
       const message = error instanceof Error ? error.message : '방 정보 조회 중 오류가 발생했습니다.';
@@ -159,7 +164,7 @@ export const useRoom = () => {
     error,
     createRoom,
     getRooms,
-    getMyRooms,
+    getMyRoom,
     getRoom,
     updateRoom,
     deleteRoom,

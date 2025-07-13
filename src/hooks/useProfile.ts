@@ -62,14 +62,14 @@ export const useProfile = () => {
     }
   };
 
-  const getUserProfile = async (userId: string) => {
+  const getUserProfile = async (profileId: string) => {
     if (!accessToken) throw new Error('인증이 필요합니다.');
     
     setLoading(true);
     setError(null);
     
     try {
-      const response = await apiService.getUserProfile(accessToken, userId);
+      const response = await apiService.getUserProfile(accessToken, profileId);
       return response.data;
     } catch (error) {
       const message = error instanceof Error ? error.message : '사용자 프로필 조회 중 오류가 발생했습니다.';

@@ -14,16 +14,13 @@ export interface User {
   id: string;
   username: string;
   email: string;
-  nickname: string;
   created_at: string;
-  last_login: string;
-  updated_at: string;
+  updated_at?: string;
 }
 
 export interface LoginResponse {
   data: {
     access_token: string;
-    refresh_token: string;
     token_type: string;
     expires_in: number;
   };

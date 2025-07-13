@@ -30,8 +30,7 @@ export interface UserInfo {
 }
 
 export interface RoomUser {
-  user_id: string;
-  username: string;
+  profile_id: string;
   display_name: string;
   is_host: boolean;
   joined_at: string;
@@ -39,8 +38,7 @@ export interface RoomUser {
 
 export interface ChatMessage {
   id: string;
-  user_id: string;
-  username: string;
+  profile_id: string;
   display_name: string;
   message: string;
   message_type: 'lobby' | 'game';
@@ -67,8 +65,8 @@ export interface SystemMessage {
 export interface RoomMessage {
   event_type: SocketEventType;
   room_id: string;
-  user_id?: string;
-  username?: string;
+  profile_id?: string;
+  display_name?: string;
   timestamp: string;
   data: Record<string, any>;
 } 

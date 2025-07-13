@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useApi } from '../hooks/useApi';
 import { useAuthStore } from '../stores/authStore';
 import { RoomListResponse, RoomCreateRequest } from '../services/api';
+import { useProfile } from '../hooks/useProfile';
 
 
 const Home: React.FC = () => {
@@ -17,6 +18,9 @@ const Home: React.FC = () => {
   const { user } = useAuthStore();
   const { getRooms, createRoom, logout: apiLogout } = useApi();
   const { logout } = useAuthStore();
+  const { getMyProfile } = useProfile();
+  const [myProfile, setMyProfile] = useState<any>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // 방 생성 폼 상태
@@ -30,6 +34,7 @@ const Home: React.FC = () => {
 
   useEffect(() => {
     fetchRooms();
+    fetchMyProfile();
   }, []);
 
   // 페이지 포커스 시 방 리스트 새로고침
@@ -88,6 +93,25 @@ const Home: React.FC = () => {
       if (showLoading) {
         setLoading(false);
       }
+    }
+  };
+
+  const fetchMyProfile = async () => {
+    try {
+      setProfileLoading(true);
+      const response = await getMyProfile();
+      setMyProfile(response);
+    } catch (error) {
+      console.error('[Home] 프로필 조회 실패:', error);
+      
+      // 프로필이 없는 경우 프로필 생성 페이지로 이동
+      if (error instanceof Error && error.message.includes('Profile not found')) {
+        alert('프로필이 없습니다. 프로필을 먼저 생성해주세요.');
+        navigate('/create-profile');
+        return;
+      }
+    } finally {
+      setProfileLoading(false);
     }
   };
 
@@ -160,8 +184,8 @@ const Home: React.FC = () => {
     navigate('/login');
   };
 
-  if (loading) {
-    return <div>방 목록을 불러오는 중...</div>;
+  if (loading || profileLoading) {
+    return <div>정보를 불러오는 중...</div>;
   }
 
   if (error) {
@@ -190,7 +214,7 @@ const Home: React.FC = () => {
         </button>
       </div>
       <h1>방 목록</h1>
-      <p>안녕하세요, {user?.username}님!</p>
+      <p>안녕하세요, {myProfile?.display_name || user?.username}님!</p>
       
       <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
         <button onClick={() => fetchRooms(true)} style={{ marginRight: '10px' }}>새로고침</button>
@@ -231,7 +255,7 @@ const Home: React.FC = () => {
               <h3>{room.title}</h3>
               {room.description && <p>{room.description}</p>}
               <div>
-                <span>방장: {room.host_username}</span>
+                <span>방장: {room.host_display_name}</span>
                 <span> | </span>
                 <span>인원: {room.current_players}/{room.max_players}</span>
                 <span> | </span>

@@ -85,16 +85,27 @@ export const useSocket = (options: UseSocketOptions) => {
   // 방 입장
   const joinRoom = useCallback((roomId: string, password?: string) => {
     if (!socketRef.current?.connected) throw new Error('Socket is not connected');
+    
+    // 이미 같은 방에 있으면 중복 입장 방지
+    if (state.currentRoom === roomId) {
+      console.log('[useSocket] 이미 방에 입장되어 있음:', roomId);
+      return Promise.resolve();
+    }
+    
     return new Promise<void>((resolve, reject) => {
+      console.log('[useSocket] 방 입장 시도:', roomId);
       socketRef.current!.emit(SocketEventType.JOIN_ROOM, { room_id: roomId, password }, (response: any) => {
-        if (response?.error) reject(new Error(response.error));
-        else {
+        if (response?.error) {
+          console.error('[useSocket] 방 입장 실패:', response.error);
+          reject(new Error(response.error));
+        } else {
+          console.log('[useSocket] 방 입장 성공:', roomId);
           setState(prev => ({ ...prev, currentRoom: roomId }));
           resolve();
         }
       });
     });
-  }, []);
+  }, [state.currentRoom]);
 
   // 방 나가기
   const leaveRoom = useCallback(() => {
