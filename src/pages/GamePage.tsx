@@ -33,6 +33,7 @@ const GamePage: React.FC = () => {
   const [room, setRoom] = useState<any>(null);
   const [profile, setProfile] = useState<UserProfileResponse | null>(null);
   const [chatHistory, setChatHistory] = useState<any[]>([]);
+  const [gameStarted, setGameStarted] = useState(false);
   const { modalState, showInfo, showError, hideModal } = useModal();
 
   // 프로필은 최초 1회만
@@ -47,6 +48,15 @@ const GamePage: React.FC = () => {
     getRoom(roomId).then(res => {
       console.log('[GamePage] 방 정보 로드 완료:', res.data);
       setRoom(res.data);
+      
+      // 방 상태에 따라 게임 시작 상태 설정
+      if (res.data.status === 'playing') {
+        console.log('[GamePage] 방이 이미 게임 진행 중이므로 gameStarted를 true로 설정');
+        setGameStarted(true);
+      } else {
+        console.log('[GamePage] 방이 대기 중이므로 gameStarted를 false로 설정');
+        setGameStarted(false);
+      }
     });
   }, [roomId]);
 
@@ -158,6 +168,7 @@ const GamePage: React.FC = () => {
       console.log('[GamePage] START_GAME 이벤트 수신:', data);
       if (data.room_id === roomId) {
         console.log('[GamePage] 게임 시작됨:', data);
+        setGameStarted(true);
         // 게임 시작 시 방 정보 갱신 (중복 방지)
         if (!isRefreshing) {
           isRefreshing = true;
@@ -179,6 +190,7 @@ const GamePage: React.FC = () => {
       console.log('[GamePage] FINISH_GAME 이벤트 수신:', data);
       if (data.room_id === roomId) {
         console.log('[GamePage] 게임 종료됨:', data);
+        setGameStarted(false);
         showInfo(`${data.host_display_name}님이 게임을 종료했습니다.`, '게임 종료');
         navigate(`/room/${roomId}`); // 로비로 돌아가기
       } else {
@@ -222,7 +234,7 @@ const GamePage: React.FC = () => {
     return () => { socket.off(SocketEventType.ROOM_DELETED, handleRoomDeleted); };
   }, [socket, roomId, navigate]);
 
-  console.log('[GamePage] 렌더링:', { room: !!room, profile: !!profile, socket: !!socket, socketConnected: socket?.connected, roomId, currentRoom, isConnected });
+  console.log('[GamePage] 렌더링:', { room: !!room, profile: !!profile, socket: !!socket, socketConnected: socket?.connected, roomId, currentRoom, isConnected, gameStarted });
   
   if (!room || !profile) return <div>로딩 중...</div>;
 
@@ -257,7 +269,9 @@ const GamePage: React.FC = () => {
       {/* 상단: 방 이름, 나가기 버튼 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderBottom: '1px solid #eee' }}>
         <h2 style={{ margin: 0 }}>{room.title} - 게임 진행 중</h2>
-        <button onClick={handleLeaveGame} style={{ background: '#f44336', color: 'white', border: 'none', borderRadius: 4, padding: '8px 16px', fontWeight: 'bold' }}>게임 나가기</button>
+        {!gameStarted && (
+          <button onClick={handleLeaveGame} style={{ background: '#f44336', color: 'white', border: 'none', borderRadius: 4, padding: '8px 16px', fontWeight: 'bold' }}>게임 나가기</button>
+        )}
       </div>
       
       {/* 메인: 좌측 게임 영역, 우측 채팅 */}
