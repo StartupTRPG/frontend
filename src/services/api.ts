@@ -229,6 +229,7 @@ export interface RoomListResponse {
 export interface RoomPlayerResponse {
   profile_id: string;
   display_name: string;
+  avatar_url: string | null;
   role: 'host' | 'player' | 'observer';
   joined_at: string;
 }
@@ -296,6 +297,7 @@ class ApiService {
     return {
       ...options,
       headers: {
+        'Content-Type': 'application/json',
         ...options.headers,
         'Authorization': `Bearer ${accessToken}`,
       },
@@ -495,9 +497,6 @@ class ApiService {
       this.withAuthHeader({
         method: 'POST',
         body: JSON.stringify(roomData),
-        headers:{
-          'Content-Type': 'application/json',
-        }
       }, accessToken)
     );
   }

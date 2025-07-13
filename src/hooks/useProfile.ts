@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { apiService } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 import { UserProfileCreate, UserProfileUpdate } from '../types/profile';
@@ -8,7 +8,7 @@ export const useProfile = () => {
   const [error, setError] = useState<string | null>(null);
   const { accessToken } = useAuthStore();
 
-  const createProfile = async (profileData: UserProfileCreate) => {
+  const createProfile = useCallback(async (profileData: UserProfileCreate) => {
     if (!accessToken) throw new Error('인증이 필요합니다.');
     
     setLoading(true);
@@ -24,9 +24,9 @@ export const useProfile = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [accessToken]);
 
-  const getMyProfile = async () => {
+  const getMyProfile = useCallback(async () => {
     if (!accessToken) throw new Error('인증이 필요합니다.');
     
     setLoading(true);
@@ -42,9 +42,9 @@ export const useProfile = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [accessToken]);
 
-  const updateMyProfile = async (profileData: UserProfileUpdate) => {
+  const updateMyProfile = useCallback(async (profileData: UserProfileUpdate) => {
     if (!accessToken) throw new Error('인증이 필요합니다.');
     
     setLoading(true);
@@ -60,9 +60,9 @@ export const useProfile = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [accessToken]);
 
-  const getUserProfile = async (profileId: string) => {
+  const getUserProfile = useCallback(async (profileId: string) => {
     if (!accessToken) throw new Error('인증이 필요합니다.');
     
     setLoading(true);
@@ -78,9 +78,9 @@ export const useProfile = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [accessToken]);
 
-  const searchProfiles = async (query: string, limit: number = 20) => {
+  const searchProfiles = useCallback(async (query: string, limit: number = 20) => {
     if (!accessToken) throw new Error('인증이 필요합니다.');
     
     setLoading(true);
@@ -96,7 +96,7 @@ export const useProfile = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [accessToken]);
 
   return {
     loading,

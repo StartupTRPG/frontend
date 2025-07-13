@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useApi } from '../hooks/useApi';
 import { useAuthStore } from '../stores/authStore';
@@ -67,7 +67,7 @@ const RoomLobby: React.FC = () => {
       });
   }, [roomId, room, isConnected, myProfile, hasJoinedRoom]);
 
-  const fetchRoom = async () => {
+  const fetchRoom = useCallback(async () => {
     try {
       setLoading(true);
       const response = await getRoom(roomId!);
@@ -77,9 +77,9 @@ const RoomLobby: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [roomId, getRoom]);
 
-  const fetchMyProfile = async () => {
+  const fetchMyProfile = useCallback(async () => {
     try {
       setProfileLoading(true);
       const response = await getMyProfile();
@@ -100,9 +100,9 @@ const RoomLobby: React.FC = () => {
     } finally {
       setProfileLoading(false);
     }
-  };
+  }, [getMyProfile, navigate]);
 
-  const fetchChatHistory = async () => {
+  const fetchChatHistory = useCallback(async () => {
     if (!roomId) return;
     
     try {
@@ -111,7 +111,7 @@ const RoomLobby: React.FC = () => {
     } catch (error) {
       console.error('채팅 이력 조회 실패:', error);
     }
-  };
+  }, [roomId, getChatHistory]);
 
   const handleStartGame = async () => {
     if (!roomId) return;
@@ -312,12 +312,28 @@ const RoomLobby: React.FC = () => {
               border: '1px solid #ddd'
             }}>
               <h3 style={{ margin: '0 0 10px 0' }}>내 정보</h3>
-              <div style={{ display: 'flex', gap: '20px', fontSize: '14px' }}>
-                <span><strong>표시명:</strong> {myProfile.display_name}</span>
-                <span><strong>레벨:</strong> {myProfile.user_level}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '10px' }}>
+                <img 
+                  src="https://via.placeholder.com/50/007bff/ffffff?text=User" 
+                  alt="내 프로필 이미지"
+                  style={{
+                    width: '50px',
+                    height: '50px',
+                    borderRadius: '50%',
+                    objectFit: 'cover'
+                  }}
+                />
+                <div>
+                  <div style={{ fontSize: '16px', fontWeight: 'bold' }}>
+                    {myProfile.display_name}
+                  </div>
+                  <div style={{ fontSize: '14px', color: '#666' }}>
+                    레벨 {myProfile.user_level}
+                  </div>
+                </div>
               </div>
               {myProfile.bio && (
-                <div style={{ marginTop: '10px', fontSize: '14px' }}>
+                <div style={{ fontSize: '14px' }}>
                   <strong>자기소개:</strong> {myProfile.bio}
                 </div>
               )}
@@ -344,14 +360,26 @@ const RoomLobby: React.FC = () => {
                     borderRadius: '6px',
                     backgroundColor: player.role === 'host' ? '#f0f8ff' : '#fafafa'
                   }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <strong>{player.display_name}</strong>
-                        {player.role === 'host' && <span style={{ color: 'blue', marginLeft: '10px' }}>👑 방장</span>}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '5px' }}>
+                      <img 
+                        src={player.avatar_url || 'https://ssl.pstatic.net/static/pwe/address/img_profile.png'}
+                        alt={`${player.display_name} 프로필 이미지`}
+                        style={{
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: '50%',
+                          objectFit: 'cover'
+                        }}
+                      />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <strong>{player.display_name}</strong>
+                          {player.role === 'host' && <span style={{ color: 'blue' }}>👑</span>}
+                        </div>
+                        <small style={{ color: '#666' }}>
+                          {player.role === 'host' ? '방장' : player.role === 'player' ? '플레이어' : '관찰자'}
+                        </small>
                       </div>
-                      <small style={{ color: '#666' }}>
-                        {player.role === 'host' ? '방장' : player.role === 'player' ? '플레이어' : '관찰자'}
-                      </small>
                     </div>
                     <div style={{ marginTop: '5px' }}>
                       <small style={{ color: '#999' }}>

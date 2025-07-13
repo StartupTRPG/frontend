@@ -35,7 +35,7 @@ const Home: React.FC = () => {
   useEffect(() => {
     fetchRooms();
     fetchMyProfile();
-  }, []);
+  }, []); // 컴포넌트 마운트 시에만 실행
 
   // 페이지 포커스 시 방 리스트 새로고침
   useEffect(() => {
@@ -214,6 +214,45 @@ const Home: React.FC = () => {
         </button>
       </div>
       <h1>방 목록</h1>
+      
+      {/* 프로필 정보 카드 */}
+      {myProfile && (
+        <div style={{
+          backgroundColor: '#f8f9fa',
+          border: '1px solid #dee2e6',
+          borderRadius: '8px',
+          padding: '20px',
+          marginBottom: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '15px'
+        }}>
+          <img 
+            src={myProfile.avatar_url || 'https://ssl.pstatic.net/static/pwe/address/img_profile.png'}
+            alt="프로필 이미지"
+            style={{
+              width: '60px',
+              height: '60px',
+              borderRadius: '50%',
+              objectFit: 'cover'
+            }}
+          />
+          <div>
+            <h3 style={{ margin: '0 0 5px 0', color: '#333' }}>
+              {myProfile.display_name}
+            </h3>
+            <p style={{ margin: '0 0 5px 0', color: '#666', fontSize: '14px' }}>
+              레벨 {myProfile.user_level}
+            </p>
+            {myProfile.bio && (
+              <p style={{ margin: '0', color: '#666', fontSize: '14px' }}>
+                {myProfile.bio}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+      
       <p>안녕하세요, {myProfile?.display_name || user?.username}님!</p>
       
       <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -238,6 +277,12 @@ const Home: React.FC = () => {
           )}
         </div>
         
+        <button 
+          onClick={() => navigate('/create-profile')}
+          style={{ backgroundColor: '#FF9800', color: 'white', border: 'none', padding: '10px 20px', marginRight: '10px' }}
+        >
+          프로필
+        </button>
         <button 
           onClick={() => setShowCreateModal(true)}
           style={{ backgroundColor: '#4CAF50', color: 'white', border: 'none', padding: '10px 20px' }}

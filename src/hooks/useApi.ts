@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { apiService } from '../services/api';
 import { useAuth } from './useAuth';
@@ -7,7 +8,7 @@ export const useApi = () => {
   const { accessToken } = useAuthStore();
   const { refreshAccessToken } = useAuth();
 
-  const authenticatedRequest = async <T>(
+  const authenticatedRequest = useCallback(async <T>(
     requestFn: (token: string) => Promise<T>
   ): Promise<T> => {
     if (!accessToken) {
@@ -24,39 +25,39 @@ export const useApi = () => {
       }
       throw error;
     }
-  };
+  }, [accessToken, refreshAccessToken]);
 
   return {
-    getMyProfile: () => authenticatedRequest(token => apiService.getMyProfile(token)),
-    updateMyProfile: (userData: UserProfileUpdate) => 
-      authenticatedRequest(token => apiService.updateMyProfile(token, userData)),
-    createProfile: (profileData: UserProfileCreate) =>
-      authenticatedRequest(token => apiService.createProfile(token, profileData)),
-    getUserProfile: (profileId: string) =>
-      authenticatedRequest(token => apiService.getUserProfile(token, profileId)),
-    searchProfiles: (query: string, limit?: number) =>
-      authenticatedRequest(token => apiService.searchProfiles(token, query, limit)),
-    getRooms: (params?: any) => authenticatedRequest(token => apiService.getRooms(token, params)),
-    getMyRoom: () => authenticatedRequest(token => apiService.getMyRoom(token)),
-    createRoom: (roomData: any) => 
-      authenticatedRequest(token => apiService.createRoom(token, roomData)),
-    getRoom: (roomId: string) => authenticatedRequest(token => apiService.getRoom(token, roomId)),
-    updateRoom: (roomId: string, roomData: any) =>
-      authenticatedRequest(token => apiService.updateRoom(token, roomId, roomData)),
-    deleteRoom: (roomId: string) =>
-      authenticatedRequest(token => apiService.deleteRoom(token, roomId)),
-    startGame: (roomId: string) =>
-      authenticatedRequest(token => apiService.startGame(token, roomId)),
-    endGame: (roomId: string) =>
-      authenticatedRequest(token => apiService.endGame(token, roomId)),
-    getChatHistory: (roomId: string, page?: number, limit?: number) =>
-      authenticatedRequest(token => apiService.getChatHistory(token, roomId, page, limit)),
-    getLobbyChatHistory: (page?: number, limit?: number) =>
-      authenticatedRequest(token => apiService.getLobbyChatHistory(token, page, limit)),
-    getGameChatHistory: (page?: number, limit?: number) =>
-      authenticatedRequest(token => apiService.getGameChatHistory(token, page, limit)),
-    deleteChatHistory: (roomId: string) =>
-      authenticatedRequest(token => apiService.deleteChatHistory(token, roomId)),
-    logout: () => apiService.logout(),
+    getMyProfile: useCallback(() => authenticatedRequest(token => apiService.getMyProfile(token)), [authenticatedRequest]),
+    updateMyProfile: useCallback((userData: UserProfileUpdate) => 
+      authenticatedRequest(token => apiService.updateMyProfile(token, userData)), [authenticatedRequest]),
+    createProfile: useCallback((profileData: UserProfileCreate) =>
+      authenticatedRequest(token => apiService.createProfile(token, profileData)), [authenticatedRequest]),
+    getUserProfile: useCallback((profileId: string) =>
+      authenticatedRequest(token => apiService.getUserProfile(token, profileId)), [authenticatedRequest]),
+    searchProfiles: useCallback((query: string, limit?: number) =>
+      authenticatedRequest(token => apiService.searchProfiles(token, query, limit)), [authenticatedRequest]),
+    getRooms: useCallback((params?: any) => authenticatedRequest(token => apiService.getRooms(token, params)), [authenticatedRequest]),
+    getMyRoom: useCallback(() => authenticatedRequest(token => apiService.getMyRoom(token)), [authenticatedRequest]),
+    createRoom: useCallback((roomData: any) => 
+      authenticatedRequest(token => apiService.createRoom(token, roomData)), [authenticatedRequest]),
+    getRoom: useCallback((roomId: string) => authenticatedRequest(token => apiService.getRoom(token, roomId)), [authenticatedRequest]),
+    updateRoom: useCallback((roomId: string, roomData: any) =>
+      authenticatedRequest(token => apiService.updateRoom(token, roomId, roomData)), [authenticatedRequest]),
+    deleteRoom: useCallback((roomId: string) =>
+      authenticatedRequest(token => apiService.deleteRoom(token, roomId)), [authenticatedRequest]),
+    startGame: useCallback((roomId: string) =>
+      authenticatedRequest(token => apiService.startGame(token, roomId)), [authenticatedRequest]),
+    endGame: useCallback((roomId: string) =>
+      authenticatedRequest(token => apiService.endGame(token, roomId)), [authenticatedRequest]),
+    getChatHistory: useCallback((roomId: string, page?: number, limit?: number) =>
+      authenticatedRequest(token => apiService.getChatHistory(token, roomId, page, limit)), [authenticatedRequest]),
+    getLobbyChatHistory: useCallback((page?: number, limit?: number) =>
+      authenticatedRequest(token => apiService.getLobbyChatHistory(token, page, limit)), [authenticatedRequest]),
+    getGameChatHistory: useCallback((page?: number, limit?: number) =>
+      authenticatedRequest(token => apiService.getGameChatHistory(token, page, limit)), [authenticatedRequest]),
+    deleteChatHistory: useCallback((roomId: string) =>
+      authenticatedRequest(token => apiService.deleteChatHistory(token, roomId)), [authenticatedRequest]),
+    logout: useCallback(() => apiService.logout(), []),
   };
 }; 
