@@ -9,25 +9,11 @@ export enum SocketEventType {
   // 방 관련
   JOIN_ROOM = "join_room",
   LEAVE_ROOM = "leave_room",
-  ROOM_JOINED = "room_joined",
-  ROOM_LEFT = "room_left",
-  USER_JOINED = "user_joined",
-  USER_LEFT = "user_left",
-  GET_ROOM_USERS = "get_room_users",
-  ROOM_USERS = "room_users",
+  ROOM_DELETED = "room_deleted",
   
-  // 게임 관련
-  START_GAME = "start_game",
-  END_GAME = "end_game",
-  GAME_STARTED = "game_started",
-  GAME_ENDED = "game_ended",
-  GAME_ROOM_JOINED = "game_room_joined",
-  RETURNED_TO_LOBBY = "returned_to_lobby",
-  
-  // 로비 메시지
+  // 채팅 관련
   LOBBY_MESSAGE = "lobby_message",
-  
-  // 게임 메시지
+  SYSTEM_MESSAGE = "system_message",
   GAME_MESSAGE = "game_message",
   
   // 공통
@@ -57,7 +43,7 @@ export interface ChatMessage {
   username: string;
   display_name: string;
   message: string;
-  message_type: 'text' | 'system';
+  message_type: 'lobby' | 'game';
   timestamp: string;
   room_id: string;
 }

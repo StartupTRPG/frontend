@@ -119,17 +119,13 @@ const ChatBox: React.FC<ChatBoxProps> = ({ roomId, socket, user, chatType = 'lob
       <div style={{ flex: 1, overflowY: 'auto', padding: 12, background: '#f9f9f9' }}>
         {messages.map((msg, idx) => (
           <div key={msg.id || idx} style={{ marginBottom: 8 }}>
-            {msg.message_type === 'system' ? (
-              <div style={{ color: '#888', fontSize: 13, textAlign: 'center' }}>{msg.message}</div>
-            ) : (
-              <div>
-                <span style={{ fontWeight: msg.user_id === user?.id ? 700 : 500, color: msg.user_id === user?.id ? '#1976d2' : '#333' }}>
-                  {msg.display_name || msg.username}
-                </span>
-                <span style={{ marginLeft: 8, color: '#aaa', fontSize: 12 }}>{new Date(msg.timestamp).toLocaleTimeString()}</span>
-                <div style={{ marginLeft: 4 }}>{msg.message}</div>
-              </div>
-            )}
+            <div>
+              <span style={{ fontWeight: msg.user_id === user?.id ? 700 : 500, color: msg.user_id === user?.id ? '#1976d2' : '#333' }}>
+                {msg.display_name || msg.username}
+              </span>
+              <span style={{ marginLeft: 8, color: '#aaa', fontSize: 12 }}>{new Date(msg.timestamp).toLocaleTimeString()}</span>
+              <div style={{ marginLeft: 4 }}>{msg.message}</div>
+            </div>
           </div>
         ))}
         <div ref={messagesEndRef} />

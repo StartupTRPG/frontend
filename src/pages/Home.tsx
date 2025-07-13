@@ -104,14 +104,8 @@ const Home: React.FC = () => {
   };
 
   const handleJoinRoom = (room: RoomListResponse) => {
-    // 비밀번호가 있는 경우 모달 표시
-    // 비밀번호가 없는 경우 바로 소켓으로 입장 요청
-    if (room.has_password) {
-      alert('비밀번호가 필요한 방입니다.');
-      // 비밀번호 입력 모달 표시 로직 제거
-    } else {
-      joinRoomViaSocket(room.id);
-    }
+    // 바로 소켓으로 입장 요청
+    joinRoomViaSocket(room.id);
   };
 
   const joinRoomViaSocket = (roomId: string) => {
@@ -195,7 +189,6 @@ const Home: React.FC = () => {
                 <span>상태: {getStatusText(room.status)}</span>
                 <span> | </span>
                 <span>공개: {getVisibilityText(room.visibility)}</span>
-                {room.has_password && <span> | 🔒 비밀번호</span>}
               </div>
               <div>
                 <small>생성일: {new Date(room.created_at).toLocaleString()}</small>

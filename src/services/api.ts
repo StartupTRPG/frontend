@@ -26,7 +26,6 @@ export interface User {
 export interface LoginResponse {
   data: {
     access_token: string;
-    refresh_token: string;
     token_type: string;
     expires_in: number;
   };
@@ -201,14 +200,13 @@ export interface RoomUpdateRequest {
 export interface RoomResponse {
   id: string;
   title: string;
-  description?: string;
+  description: string;
   host_id: string;
   host_username: string;
-  current_players: number;
   max_players: number;
-  status: 'waiting' | 'profile_setup' | 'playing' | 'finished';
+  current_players: number;
+  status: 'waiting' | 'playing' | 'finished';
   visibility: 'public' | 'private';
-  has_password: boolean;
   created_at: string;
   updated_at: string;
   game_settings: Record<string, any>;
@@ -218,14 +216,16 @@ export interface RoomResponse {
 export interface RoomListResponse {
   id: string;
   title: string;
-  description?: string;
+  description: string;
+  host_id: string;
   host_username: string;
-  current_players: number;
   max_players: number;
-  status: 'waiting' | 'profile_setup' | 'playing' | 'finished';
+  current_players: number;
+  status: 'waiting' | 'playing' | 'finished';
   visibility: 'public' | 'private';
-  has_password: boolean;
   created_at: string;
+  updated_at: string;
+  game_settings: Record<string, any>;
 }
 
 export interface RoomPlayerResponse {
@@ -233,7 +233,6 @@ export interface RoomPlayerResponse {
   username: string;
   role: 'host' | 'player' | 'observer';
   joined_at: string;
-  is_host: boolean;
 }
 
 export interface RoomChatHistoryResponse {
@@ -250,7 +249,7 @@ export interface ChatMessageResponse {
   user_id: string;
   username: string;
   display_name: string;
-  message_type: 'text' | 'system';
+  message_type: 'lobby' | 'game';
   message: string;
   timestamp: string;
   encrypted: boolean;

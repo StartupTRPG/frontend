@@ -5,6 +5,7 @@ import { useAuthStore } from '../stores/authStore';
 import { RoomResponse } from '../services/api';
 // import LobbyChatBox from '../components/game/LobbyChatBox'; // 삭제된 컴포넌트
 import { useSocket } from '../hooks/useSocket';
+import { useSocketHandlers } from '../hooks/useSocketHandlers';
 import ChatBox from '../components/common/ChatBox';
 import { SocketEventType } from '../types/socket';
 
@@ -20,6 +21,19 @@ const RoomLobby: React.FC = () => {
   const { getRoom, startGame, endGame, getMyProfile, getMyRoom, getChatHistory } = useApi();
   const { isConnected, error: connectionError, joinRoom, leaveRoom, socket } = useSocket({
     token: useAuthStore.getState().accessToken || '',
+  });
+
+  // 소켓 이벤트 핸들러
+  const { registerEventHandlers } = useSocketHandlers({
+    socket,
+    roomId: roomId!,
+    onRoomUpdate: () => {
+      getMyRoom().then((res: { data: RoomResponse }) => {
+        if (res.data && res.data.id === roomId) {
+          setRoom(res.data);
+        }
+      });
+    },
   });
 
   // 1. useLocation import 및 password 변수 삭제
@@ -41,26 +55,7 @@ const RoomLobby: React.FC = () => {
     // 필요시 socket.on(...)으로 이벤트 리스너 등록 가능
   }, [roomId, isConnected, navigate]);
 
-  useEffect(() => {
-    if (!socket || !roomId) return;
 
-    // join_room, leave_room 이벤트 수신 시 /rooms/my 호출
-    const handleRoomUserChange = () => {
-      getMyRoom().then((res: { data: RoomResponse }) => {
-        if (res.data && res.data.id === roomId) {
-          setRoom(res.data);
-        }
-      });
-    };
-
-    socket.on(SocketEventType.JOIN_ROOM, handleRoomUserChange);
-    socket.on(SocketEventType.LEAVE_ROOM, handleRoomUserChange);
-
-    return () => {
-      socket.off(SocketEventType.JOIN_ROOM, handleRoomUserChange);
-      socket.off(SocketEventType.LEAVE_ROOM, handleRoomUserChange);
-    };
-  }, [socket, roomId, getMyRoom]);
 
   const fetchRoom = async () => {
     try {
@@ -104,8 +99,8 @@ const RoomLobby: React.FC = () => {
         return;
       }
       
-      // 소켓으로 게임 시작 요청
-      socket.emit(SocketEventType.START_GAME, { room_id: roomId });
+      // 소켓으로 게임 시작 요청 (백엔드에 없는 이벤트이므로 문자열로 직접 사용)
+      socket.emit('start_game', { room_id: roomId });
       
     } catch (error) {
       alert(error instanceof Error ? error.message : '게임 시작에 실패했습니다.');
@@ -137,11 +132,16 @@ const RoomLobby: React.FC = () => {
     }
   };
 
-  // 소켓 이벤트 리스너 등록
+  // 소켓 이벤트 핸들러 등록
+  useEffect(() => {
+    const cleanup = registerEventHandlers();
+    return cleanup;
+  }, [registerEventHandlers]);
+
+  // 게임 시작 이벤트 리스너 (백엔드에 없는 이벤트이므로 별도 처리)
   useEffect(() => {
     if (!socket || !roomId) return;
 
-    // 게임 시작 성공 이벤트 리스너
     const handleGameStarted = (data: any) => {
       if (data.room_id === roomId) {
         alert('게임이 시작되었습니다!');
@@ -149,21 +149,9 @@ const RoomLobby: React.FC = () => {
       }
     };
 
-    // 방 퇴장 성공 이벤트 리스너
-    const handleRoomLeft = (data: any) => {
-      if (data.room_id === roomId) {
-        navigate('/home');
-      }
-    };
-
-    // 이벤트 리스너 등록
-    socket.on(SocketEventType.GAME_STARTED, handleGameStarted);
-    socket.on(SocketEventType.ROOM_LEFT, handleRoomLeft);
-
-    // 클린업 함수
+    socket.on('game_started', handleGameStarted);
     return () => {
-      socket.off(SocketEventType.GAME_STARTED, handleGameStarted);
-      socket.off(SocketEventType.ROOM_LEFT, handleRoomLeft);
+      socket.off('game_started', handleGameStarted);
     };
   }, [socket, roomId, navigate]);
 
@@ -263,7 +251,6 @@ const RoomLobby: React.FC = () => {
           <span><strong>인원:</strong> {room.current_players}/{room.max_players}</span>
           <span><strong>상태:</strong> {getStatusText(room.status)}</span>
           <span><strong>공개:</strong> {getVisibilityText(room.visibility)}</span>
-          {room.has_password && <span><strong>🔒 비밀번호</strong></span>}
         </div>
       </div>
 
@@ -322,12 +309,12 @@ const RoomLobby: React.FC = () => {
                     border: '1px solid #ddd', 
                     padding: '12px', 
                     borderRadius: '6px',
-                    backgroundColor: player.is_host ? '#f0f8ff' : '#fafafa'
+                    backgroundColor: player.role === 'host' ? '#f0f8ff' : '#fafafa'
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
                         <strong>{player.username}</strong>
-                        {player.is_host && <span style={{ color: 'blue', marginLeft: '10px' }}>👑 방장</span>}
+                        {player.role === 'host' && <span style={{ color: 'blue', marginLeft: '10px' }}>👑 방장</span>}
                       </div>
                       <small style={{ color: '#666' }}>
                         {player.role === 'host' ? '방장' : player.role === 'player' ? '플레이어' : '관찰자'}
