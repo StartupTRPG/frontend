@@ -70,17 +70,20 @@ function AppWithSocket() {
       {isAuthenticated && isConnected && (
         <div style={{
           position: 'fixed',
-          top: '10px',
-          right: '10px',
-          backgroundColor: '#4caf50',
+          bottom: '20px',
+          right: '24px',
+          backgroundColor: 'rgba(76,175,80,0.92)',
           color: 'white',
-          padding: '5px 10px',
-          borderRadius: '4px',
+          padding: '6px 14px',
+          borderRadius: '20px',
           zIndex: 1000,
-          fontSize: '12px',
-          boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
+          fontSize: '13px',
+          display: 'flex',
+          alignItems: 'center',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.10)'
         }}>
-          연결됨
+          <span style={{ fontSize: '16px', marginRight: '6px', lineHeight: 1 }}>●</span>
+          <span>연결됨</span>
         </div>
       )}
 

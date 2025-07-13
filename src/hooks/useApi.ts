@@ -57,5 +57,6 @@ export const useApi = () => {
       authenticatedRequest(token => apiService.getGameChatHistory(token, page, limit)),
     deleteChatHistory: (roomId: string) =>
       authenticatedRequest(token => apiService.deleteChatHistory(token, roomId)),
+    logout: () => apiService.logout(),
   };
 }; 

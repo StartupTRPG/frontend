@@ -15,7 +15,8 @@ const Home: React.FC = () => {
   const [createLoading, setCreateLoading] = useState(false);
   const [autoRefreshInterval, setAutoRefreshInterval] = useState<number>(5); // 0: 비활성화, 1, 5, 10초 (기본값: 5초)
   const { user } = useAuthStore();
-  const { getRooms, createRoom } = useApi();
+  const { getRooms, createRoom, logout: apiLogout } = useApi();
+  const { logout } = useAuthStore();
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // 방 생성 폼 상태
@@ -150,6 +151,15 @@ const Home: React.FC = () => {
     return visibility === 'public' ? '공개' : '비공개';
   };
 
+  // 로그아웃 핸들러
+  const handleLogout = async () => {
+    try {
+      await apiLogout();
+    } catch (e) {}
+    logout(); // 상태 초기화
+    navigate('/login');
+  };
+
   if (loading) {
     return <div>방 목록을 불러오는 중...</div>;
   }
@@ -160,6 +170,25 @@ const Home: React.FC = () => {
 
   return (
     <div>
+      {/* 상단 우측 로그아웃 버튼 */}
+      <div style={{ position: 'absolute', top: 20, right: 30, zIndex: 100 }}>
+        <button
+          onClick={handleLogout}
+          style={{
+            backgroundColor: '#f44336',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            padding: '8px 18px',
+            fontSize: '16px',
+            fontWeight: 500,
+            cursor: 'pointer',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.08)'
+          }}
+        >
+          로그아웃
+        </button>
+      </div>
       <h1>방 목록</h1>
       <p>안녕하세요, {user?.username}님!</p>
       
