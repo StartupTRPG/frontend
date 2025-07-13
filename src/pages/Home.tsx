@@ -4,6 +4,8 @@ import { useApi } from '../hooks/useApi';
 import { useAuthStore } from '../stores/authStore';
 import { RoomListResponse, RoomCreateRequest } from '../services/api';
 import { useProfile } from '../hooks/useProfile';
+import { useSocketHandlers } from '../hooks/useSocketHandlers';
+import { useSocketLogging } from '../hooks/useSocketLogging';
 
 
 const Home: React.FC = () => {

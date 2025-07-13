@@ -1,7 +1,22 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Socket } from 'socket.io-client';
 import { SocketEventType } from '../types/socket';
+
+// 모든 소켓 이벤트를 콘솔로 로깅하는 훅
+export function useSocketLogging(socket: any) {
+  useEffect(() => {
+    if (!socket) return;
+    const logAllEvents = (event: string, ...args: any[]) => {
+      // eslint-disable-next-line no-console
+      console.log(`[SOCKET] 이벤트: ${event}`, ...args);
+    };
+    socket.onAny(logAllEvents);
+    return () => {
+      socket.offAny(logAllEvents);
+    };
+  }, [socket]);
+}
 
 interface UseSocketHandlersProps {
   socket: Socket | null;

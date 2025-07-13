@@ -314,7 +314,7 @@ const RoomLobby: React.FC = () => {
               <h3 style={{ margin: '0 0 10px 0' }}>내 정보</h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '10px' }}>
                 <img 
-                  src="https://via.placeholder.com/50/007bff/ffffff?text=User" 
+                  src={myProfile.avatar_url || 'https://ssl.pstatic.net/static/pwe/address/img_profile.png'} 
                   alt="내 프로필 이미지"
                   style={{
                     width: '50px',
