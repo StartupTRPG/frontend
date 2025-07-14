@@ -1,0 +1,25 @@
+services:
+  startup-trpg:
+    build:
+      context: .
+      dockerfile: dockerfile
+    container_name: startup-trpg-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+      - VITE_HOST=0.0.0.0
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5173"]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+    stdin_open: true
+    tty: true
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
