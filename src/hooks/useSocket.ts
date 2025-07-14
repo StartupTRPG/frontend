@@ -72,7 +72,7 @@ export const useSocket = (options: UseSocketOptions) => {
 
     console.log('[useSocket] 새 소켓 연결 생성');
     isConnecting = true;
-    const socket = io('http://localhost:8000', {
+    const socket = io(import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000', {
       auth: { token },
       transports: ['websocket'],
     });
