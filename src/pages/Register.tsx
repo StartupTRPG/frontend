@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useRegister } from '../hooks/useRegister';
-import useModal from '../hooks/useModal';
-import Modal from '../components/common/Modal';
 import './Login.css'; // 로그인과 동일한 스타일 적용
 import './Register.css';
 
@@ -16,15 +14,14 @@ const Register: React.FC = () => {
   });
   
   const { register, loading, error, success } = useRegister();
-  const { modalState, showSuccess, showError, hideModal } = useModal();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (success) {
-      showSuccess('회원가입이 완료되었습니다! 로그인 페이지로 이동합니다.', '회원가입 완료');
+      alert('회원가입이 완료되었습니다! 로그인 페이지로 이동합니다.');
       navigate('/login');
     }
-  }, [success, navigate, showSuccess]);
+  }, [success, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -34,7 +31,7 @@ const Register: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
-      showError('비밀번호가 일치하지 않습니다.', '입력 오류');
+      alert('비밀번호가 일치하지 않습니다.');
       return;
     }
     const { confirmPassword, ...registerData } = formData;
@@ -113,7 +110,7 @@ const Register: React.FC = () => {
               {loading ? '가입 중...' : '회원가입'}
             </button>
           </form>
-
+            
           <div className="auth-footer">
             <p>
               이미 계정이 있으신가요? 
@@ -122,16 +119,6 @@ const Register: React.FC = () => {
           </div>
         </div>
       </div>
-      
-      {/* Modal */}
-      <Modal
-        isOpen={modalState.isOpen}
-        onClose={hideModal}
-        title={modalState.title}
-        message={modalState.message}
-        type={modalState.type}
-        showCloseButton={modalState.showCloseButton}
-      />
     </div>
   );
 };
