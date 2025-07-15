@@ -1,24 +1,17 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useAuthStore } from './stores/authStore';
+import { useSocket } from './hooks/useSocket';
+import Loading from './components/common/Loading';
+import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Home from './pages/Home';
+import CreateProfile from './pages/CreateProfile';
 import RoomLobby from './pages/RoomLobby';
 import GamePage from './pages/GamePage';
-import CreateProfile from './pages/CreateProfile';
 import NotFound from './pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
-import Loading from './components/common/Loading';
-import ErrorBoundary from './components/common/ErrorBoundary';
-import { useSocket } from './hooks/useSocket';
-import { useAuthStore } from './stores/authStore';
-
-function App() {
-  return (
-    <Router>
-      <AppWithSocket />
-    </Router>
-  );
-}
+import { SocketMessageLogger } from './components/common/SocketMessageLogger';
 
 function AppWithSocket() {
   const { isAuthenticated, accessToken } = useAuthStore();
@@ -29,6 +22,12 @@ function AppWithSocket() {
 
   return (
     <>
+      {/* 소켓 메시지 로거 (개발 환경에서만 활성화) */}
+      <SocketMessageLogger 
+        enabled={process.env.NODE_ENV === 'development'}
+        logLevel="all"
+      />
+      
       {showLoading && <Loading message="소켓 연결 중..." />}
       
       {/* 소켓 연결 에러 표시 */}
@@ -69,74 +68,64 @@ function AppWithSocket() {
       )}
 
       {/* 소켓 연결 상태 표시 */}
-      {isAuthenticated && isConnected && (
+      {isAuthenticated && (
         <div style={{
           position: 'fixed',
-          bottom: '20px',
-          right: '24px',
-          backgroundColor: 'rgba(76,175,80,0.92)',
+          top: '10px',
+          left: '10px',
+          backgroundColor: isConnected ? '#4CAF50' : '#ff9800',
           color: 'white',
-          padding: '6px 14px',
-          borderRadius: '20px',
+          padding: '5px 10px',
+          borderRadius: '4px',
+          fontSize: '12px',
           zIndex: 1000,
-          fontSize: '13px',
-          display: 'flex',
-          alignItems: 'center',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.10)'
+          boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
         }}>
-          <span style={{ fontSize: '16px', marginRight: '6px', lineHeight: 1 }}>●</span>
-          <span>연결됨</span>
+          {isConnected ? '🔗 연결됨' : '⏳ 연결 중...'}
         </div>
       )}
 
-      <Routes>
-        <Route path="/" element={<Navigate to="/home" replace />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route 
-          path="/home" 
-          element={
-            <ProtectedRoute>
-              <ErrorBoundary>
+      <Router>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route 
+            path="/" 
+            element={
+              <ProtectedRoute>
                 <Home />
-              </ErrorBoundary>
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/room/:roomId" 
-          element={
-            <ProtectedRoute>
-              <ErrorBoundary>
-                <RoomLobby />
-              </ErrorBoundary>
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/game/:roomId" 
-          element={
-            <ProtectedRoute>
-              <ErrorBoundary>
-                <GamePage />
-              </ErrorBoundary>
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/create-profile" 
-          element={
-            <ProtectedRoute>
-              <ErrorBoundary>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/create-profile" 
+            element={
+              <ProtectedRoute>
                 <CreateProfile />
-              </ErrorBoundary>
-            </ProtectedRoute>
-          } 
-        />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/room/:roomId" 
+            element={
+              <ProtectedRoute>
+                <RoomLobby />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/game/:roomId" 
+            element={
+              <ProtectedRoute>
+                <GamePage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Router>
     </>
   );
 }
 
-export default App; 
+export default AppWithSocket; 

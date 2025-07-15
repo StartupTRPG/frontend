@@ -37,7 +37,6 @@ const CreateProfile: React.FC = () => {
         setIsViewMode(true);
       } catch (error) {
         // 프로필이 없으면 생성 모드로 전환
-        console.log('기존 프로필이 없습니다. 새로 생성합니다.');
         setIsViewMode(false);
         setIsEditMode(false);
       }

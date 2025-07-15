@@ -16,14 +16,27 @@ export enum SocketEventType {
   // 채팅 이벤트
   LOBBY_MESSAGE = "lobby_message",
   GAME_MESSAGE = "game_message",
+  SYSTEM_MESSAGE = "system_message",
   
   // 레디 이벤트
   READY = "ready",
   
-  // 새로 추가된 게임 이벤트
+  // 게임 관련 이벤트
   START_GAME = "start_game",
   FINISH_GAME = "finish_game",
   RESET_READY = "reset_ready",
+  
+  // LLM 게임 관련 이벤트
+  CREATE_GAME = "create_game",
+  CREATE_CONTEXT = "create_context",
+  CREATE_AGENDA = "create_agenda",
+  CREATE_TASK = "create_task",
+  CREATE_OVERTIME = "create_overtime",
+  UPDATE_CONTEXT = "update_context",
+  CREATE_EXPLANATION = "create_explanation",
+  CALCULATE_RESULT = "calculate_result",
+  GET_GAME_PROGRESS = "get_game_progress",
+  GAME_PROGRESS_UPDATED = "game_progress_updated",
 }
 
 export interface UserInfo {

@@ -7,9 +7,10 @@ interface GameOvertimeProps {
   currentTurn?: number;
   maxTurn?: number;
   roomId?: string;
+  loading?: boolean;
 }
 
-const GameOvertime: React.FC<GameOvertimeProps> = ({ onCreateOvertime, taskList, currentTurn, maxTurn, roomId }) => {
+const GameOvertime: React.FC<GameOvertimeProps> = ({ onCreateOvertime, taskList, currentTurn, maxTurn, roomId, loading = false }) => {
   return (
     <div style={{ padding: '20px' }}>
       <h2 style={{ textAlign: 'center', marginBottom: '30px' }}>⏰ 오버타임 생성</h2>
@@ -87,21 +88,43 @@ const GameOvertime: React.FC<GameOvertimeProps> = ({ onCreateOvertime, taskList,
           태스크를 바탕으로 오버타임 옵션을 생성합니다.
         </p>
         
-        <button 
-          onClick={onCreateOvertime}
-          style={{
-            backgroundColor: '#9c27b0',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
+        {loading ? (
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
             padding: '12px 24px',
             fontSize: '16px',
-            fontWeight: 'bold',
-            cursor: 'pointer'
-          }}
-        >
-          ⏰ 오버타임 생성
-        </button>
+            color: '#666'
+          }}>
+            <div style={{ 
+              width: '20px', 
+              height: '20px', 
+              border: '2px solid #f3f3f3', 
+              borderTop: '2px solid #9c27b0', 
+              borderRadius: '50%', 
+              animation: 'spin 1s linear infinite',
+              marginRight: '10px'
+            }}></div>
+            오버타임 생성 중...
+          </div>
+        ) : (
+          <button 
+            onClick={onCreateOvertime}
+            style={{
+              backgroundColor: '#9c27b0',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '12px 24px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              cursor: 'pointer'
+            }}
+          >
+            ⏰ 오버타임 생성
+          </button>
+        )}
       </div>
     </div>
   );

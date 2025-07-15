@@ -7,9 +7,10 @@ interface GameTaskProps {
   currentTurn?: number;
   maxTurn?: number;
   roomId?: string;
+  loading?: boolean;
 }
 
-const GameTask: React.FC<GameTaskProps> = ({ onCreateTask, agendaList, currentTurn, maxTurn, roomId }) => {
+const GameTask: React.FC<GameTaskProps> = ({ onCreateTask, agendaList, currentTurn, maxTurn, roomId, loading = false }) => {
   return (
     <div style={{ padding: '20px' }}>
       <h2 style={{ textAlign: 'center', marginBottom: '30px' }}>📋 태스크 생성</h2>
@@ -74,21 +75,43 @@ const GameTask: React.FC<GameTaskProps> = ({ onCreateTask, agendaList, currentTu
           아젠다를 바탕으로 각 플레이어의 태스크를 생성합니다.
         </p>
         
-        <button 
-          onClick={onCreateTask}
-          style={{
-            backgroundColor: '#ff9800',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
+        {loading ? (
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
             padding: '12px 24px',
             fontSize: '16px',
-            fontWeight: 'bold',
-            cursor: 'pointer'
-          }}
-        >
-          📋 태스크 생성
-        </button>
+            color: '#666'
+          }}>
+            <div style={{ 
+              width: '20px', 
+              height: '20px', 
+              border: '2px solid #f3f3f3', 
+              borderTop: '2px solid #ff9800', 
+              borderRadius: '50%', 
+              animation: 'spin 1s linear infinite',
+              marginRight: '10px'
+            }}></div>
+            태스크 생성 중...
+          </div>
+        ) : (
+          <button 
+            onClick={onCreateTask}
+            style={{
+              backgroundColor: '#ff9800',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '12px 24px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              cursor: 'pointer'
+            }}
+          >
+            📋 태스크 생성
+          </button>
+        )}
       </div>
     </div>
   );

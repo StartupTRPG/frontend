@@ -53,10 +53,7 @@ const RoomLobby: React.FC = () => {
   // 방 정보는 roomId 바뀔 때만 (profile 의존성 제거)
   useEffect(() => {
     if (!roomId) return;
-    console.log('[RoomLobby] 방 정보 로드:', roomId);
     getRoom(roomId).then(res => {
-      console.log('[RoomLobby] 방 정보 로드 완료:', res.data);
-      console.log('[RoomLobby] 플레이어 목록:', res.data.players);
       setRoom(res.data);
       // API에서 받아온 방 상태로 게임 상태 초기화
       if (res.data.status) {
@@ -119,25 +116,21 @@ const RoomLobby: React.FC = () => {
   // 소켓 연결 후 방 입장 (개선된 로직)
   useEffect(() => {
     if (!isConnected || !roomId || !socket?.connected) {
-      console.log('[RoomLobby] 방 입장 조건 불만족:', { isConnected, roomId, socketConnected: socket?.connected });
       return;
     }
     
     // 방 나가기 중이면 입장 시도하지 않음
     if (leavingRoomRef.current) {
-      console.log('[RoomLobby] 방 나가기 중이므로 입장 시도하지 않음');
       return;
     }
     
     // 이미 같은 방에 있으면 중복 입장 방지
     if (currentRoom === roomId) {
-      console.log('[RoomLobby] 이미 방에 입장되어 있음:', roomId);
       return;
     }
     
     // 이미 입장 시도 중이면 무시
     if (joinAttemptedRef.current) {
-      console.log('[RoomLobby] 이미 방 입장 시도 중:', roomId);
       return;
     }
     
@@ -147,18 +140,14 @@ const RoomLobby: React.FC = () => {
       joinTimeoutRef.current = null;
     }
     
-    console.log('[RoomLobby] 방 입장 시도:', roomId);
     joinAttemptedRef.current = true;
     
     // 방 입장 시도
     joinRoom(roomId).then(() => {
-      console.log('[RoomLobby] 방 입장 성공:', roomId);
       joinAttemptedRef.current = false;
       
       // 방 입장 성공 후 방 정보 즉시 갱신
-      console.log('[RoomLobby] 방 입장 후 방 정보 갱신');
       getRoom(roomId).then(res => {
-        console.log('[RoomLobby] 방 입장 후 방 정보 갱신 완료:', res.data);
         setRoom(res.data);
       }).catch(error => {
         console.error('[RoomLobby] 방 입장 후 방 정보 갱신 실패:', error);
@@ -169,7 +158,6 @@ const RoomLobby: React.FC = () => {
       
       // 방이 삭제된 경우 홈으로 이동
       if (error.message === 'Room has been deleted') {
-        console.log('[RoomLobby] 방이 삭제됨, 홈으로 이동');
         showInfo('방이 삭제되었습니다.', '방 삭제');
         navigate('/home');
         return;
@@ -177,9 +165,7 @@ const RoomLobby: React.FC = () => {
       
       // 재입장 대기 에러인 경우 조용히 처리 (사용자에게 에러 표시하지 않음)
       if (error.message === 'Please wait before rejoining the room') {
-        console.log('[RoomLobby] 재입장 대기, 1초 후 재시도');
         joinTimeoutRef.current = setTimeout(() => {
-          console.log('[RoomLobby] 재입장 재시도:', roomId);
           joinAttemptedRef.current = false;
         }, 1000);
         return;
@@ -187,9 +173,7 @@ const RoomLobby: React.FC = () => {
       
       // 게임 진행 중 재입장 에러인 경우 조용히 처리
       if (error.message === 'Game in progress - rejoining as existing player') {
-        console.log('[RoomLobby] 게임 진행 중 재입장, 1초 후 재시도');
         joinTimeoutRef.current = setTimeout(() => {
-          console.log('[RoomLobby] 게임 진행 중 재입장 재시도:', roomId);
           joinAttemptedRef.current = false;
         }, 1000);
         return;
@@ -200,7 +184,6 @@ const RoomLobby: React.FC = () => {
           error.message !== 'Already joining another room' &&
           error.message !== 'Already in room') {
         joinTimeoutRef.current = setTimeout(() => {
-          console.log('[RoomLobby] 방 입장 재시도:', roomId);
           joinAttemptedRef.current = false;
         }, 3000);
       }
@@ -233,7 +216,6 @@ const RoomLobby: React.FC = () => {
     
     const handleResetReady = (data: any) => {
       if (data.room_id === roomId) {
-        console.log('[RoomLobby] 모든 플레이어 ready 상태 초기화 이벤트 수신');
         setReadyPlayers(new Set());
         setMyReadyState(false);
       }
@@ -253,11 +235,9 @@ const RoomLobby: React.FC = () => {
     if (!socket || !roomId) return;
     const handleRoomDeleted = (data: any) => {
       if (data.room_id === roomId) {
-        console.log('[RoomLobby] 방 삭제 이벤트 수신:', data);
         
         // 방 입장 시도 중이면 중단
         if (joinAttemptedRef.current) {
-          console.log('[RoomLobby] 방 입장 시도 중단 (방 삭제됨)');
           joinAttemptedRef.current = false;
           if (joinTimeoutRef.current) {
             clearTimeout(joinTimeoutRef.current);
@@ -282,19 +262,16 @@ const RoomLobby: React.FC = () => {
     let lastRefreshTime = 0; // 마지막 갱신 시간
     
     const handlePlayerChange = () => {
-      console.log('[RoomLobby] 플레이어 변경 감지, 방 정보 갱신 예약');
       
       const now = Date.now();
       
       // 이미 갱신 중이면 무시
       if (isRefreshing) {
-        console.log('[RoomLobby] 이미 갱신 중이므로 무시');
         return;
       }
       
       // 마지막 갱신으로부터 500ms 이내면 무시 (2초에서 500ms로 단축)
       if (now - lastRefreshTime < 500) {
-        console.log('[RoomLobby] 마지막 갱신으로부터 500ms 이내이므로 무시');
         return;
       }
       
@@ -308,12 +285,10 @@ const RoomLobby: React.FC = () => {
       refreshTimeout = setTimeout(() => {
         if (isRefreshing) return; // 중복 방지
         
-        console.log('[RoomLobby] 방 정보 갱신 실행');
         isRefreshing = true;
         lastRefreshTime = Date.now();
         
         getRoom(roomId).then(res => {
-          console.log('[RoomLobby] 방 정보 갱신 완료:', res.data);
           setRoom(res.data);
           isRefreshing = false;
         }).catch(error => {
@@ -342,8 +317,7 @@ const RoomLobby: React.FC = () => {
     let isRefreshing = false; // 중복 호출 방지 플래그
     
     const handleGameStart = (data: any) => {
-      if (data.room_id === roomId) {
-        console.log('[RoomLobby] 게임 시작됨:', data);
+      if (data.room_id === roomId) {  
         setGameStatus('playing');
         setGameStarting(false);
         setChatType('game'); // 채팅 타입을 게임으로 변경
@@ -352,7 +326,6 @@ const RoomLobby: React.FC = () => {
         if (!isRefreshing) {
           isRefreshing = true;
           getRoom(roomId).then(res => {
-            console.log('[RoomLobby] 게임 시작 후 방 정보 갱신');
             setRoom(res.data);
             isRefreshing = false;
           }).catch(error => {
@@ -368,14 +341,18 @@ const RoomLobby: React.FC = () => {
       }
     };
 
+    const handleStoryCreated = (data: any) => {
+      if (data.room_id === roomId) {
+        showInfo('게임 스토리가 생성되었습니다.', '스토리 생성');
+      }
+    };
+
     const handleGameFinish = (data: any) => {
       if (data.room_id === roomId) {
-        console.log('[RoomLobby] 게임 종료됨:', data);
         setGameStatus('finished');
         setChatType('lobby'); // 채팅 타입을 로비로 변경
         
         // 모든 플레이어의 ready 상태를 false로 초기화
-        console.log('[RoomLobby] 모든 플레이어 ready 상태 초기화');
         setReadyPlayers(new Set());
         setMyReadyState(false);
         
@@ -383,7 +360,6 @@ const RoomLobby: React.FC = () => {
         if (!isRefreshing) {
           isRefreshing = true;
           getRoom(roomId).then(res => {
-            console.log('[RoomLobby] 게임 종료 후 방 정보 갱신');
             setRoom(res.data);
             isRefreshing = false;
           }).catch(error => {
@@ -401,7 +377,6 @@ const RoomLobby: React.FC = () => {
         setTimeout(() => {
           setGameStatus('waiting');
           // 한 번 더 ready 상태 초기화 (다른 클라이언트에서 돌아온 경우 대비)
-          console.log('[RoomLobby] 대기실 복귀 후 ready 상태 재초기화');
           setReadyPlayers(new Set());
           setMyReadyState(false);
         }, 3000);
@@ -411,10 +386,12 @@ const RoomLobby: React.FC = () => {
     };
 
     socket.on(SocketEventType.START_GAME, handleGameStart);
+    socket.on('story_created', handleStoryCreated);
     socket.on(SocketEventType.FINISH_GAME, handleGameFinish);
     
     return () => {
       socket.off(SocketEventType.START_GAME, handleGameStart);
+      socket.off('story_created', handleStoryCreated);
       socket.off(SocketEventType.FINISH_GAME, handleGameFinish);
     };
   }, [socket, roomId]);
@@ -452,17 +429,13 @@ const RoomLobby: React.FC = () => {
   };
 
   const handleFinishGame = async () => {
-    console.log('[RoomLobby] 게임 종료 버튼 클릭:', { roomId });
     if (!roomId) {
-      console.error('[RoomLobby] 게임 종료 실패: roomId 없음');
       return;
     }
     
     try {
       finishGame(roomId);
-      console.log('[RoomLobby] FINISH_GAME 이벤트 전송 완료');
     } catch (error) {
-      console.error('[RoomLobby] 게임 종료 실패:', error);
       showError('게임 종료에 실패했습니다.', '게임 종료 실패');
     }
   };
@@ -540,11 +513,10 @@ const RoomLobby: React.FC = () => {
           isHost ? (
             <button
               onClick={handleStartGame}
-              disabled={gameStarting || room.current_players < 2 || !allPlayersReady}
+              disabled={gameStarting || !allPlayersReady}
               className="action-button start"
             >
               {gameStarting ? '⏳ 프로젝트 시작 중...' :
-                room.current_players < 2 ? '❌ 최소 2명 필요' :
                 !allPlayersReady ? '⏸️ 모든 팀원 준비 필요' :
                 '🚀 프로젝트 시작하기'}
             </button>

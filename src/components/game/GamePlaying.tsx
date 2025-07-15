@@ -15,6 +15,7 @@ interface GamePlayingProps {
   }>>;
   onUpdateContext: () => void;
   roomId?: string;
+  loading?: boolean;
 }
 
 const GamePlaying: React.FC<GamePlayingProps> = ({ 
@@ -22,7 +23,8 @@ const GamePlaying: React.FC<GamePlayingProps> = ({
   selections, 
   setSelections, 
   onUpdateContext,
-  roomId
+  roomId,
+  loading = false
 }) => {
   const [currentPlayer, setCurrentPlayer] = useState<string>('');
 
@@ -257,22 +259,44 @@ const GamePlaying: React.FC<GamePlayingProps> = ({
 
       {/* 완료 버튼 */}
       <div style={{ textAlign: 'center' }}>
-        <button 
-          onClick={onUpdateContext}
-          disabled={!isAllSelectionsComplete()}
-          style={{
-            backgroundColor: isAllSelectionsComplete() ? '#4CAF50' : '#ccc',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
+        {loading ? (
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
             padding: '12px 24px',
             fontSize: '16px',
-            fontWeight: 'bold',
-            cursor: isAllSelectionsComplete() ? 'pointer' : 'not-allowed'
-          }}
-        >
-          {isAllSelectionsComplete() ? '✅ 선택 완료' : '⏳ 모든 플레이어의 선택을 기다리는 중...'}
-        </button>
+            color: '#666'
+          }}>
+            <div style={{ 
+              width: '20px', 
+              height: '20px', 
+              border: '2px solid #f3f3f3', 
+              borderTop: '2px solid #4CAF50', 
+              borderRadius: '50%', 
+              animation: 'spin 1s linear infinite',
+              marginRight: '10px'
+            }}></div>
+            컨텍스트 업데이트 중...
+          </div>
+        ) : (
+          <button 
+            onClick={onUpdateContext}
+            disabled={!isAllSelectionsComplete()}
+            style={{
+              backgroundColor: isAllSelectionsComplete() ? '#4CAF50' : '#ccc',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '12px 24px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              cursor: isAllSelectionsComplete() ? 'pointer' : 'not-allowed'
+            }}
+          >
+            {isAllSelectionsComplete() ? '✅ 선택 완료' : '⏳ 모든 플레이어의 선택을 기다리는 중...'}
+          </button>
+        )}
       </div>
     </div>
   );

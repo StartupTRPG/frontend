@@ -257,8 +257,6 @@ export interface ChatMessageResponse {
 class ApiService {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
-    console.log(`[API] 요청 URL: ${url}`);
-    console.log(`[API] API_BASE_URL: ${API_BASE_URL}`);
     
     const defaultOptions: RequestInit = {
       credentials: 'include',
@@ -284,8 +282,6 @@ class ApiService {
       
       return data;
     } catch (error) {
-      console.error('API 요청 오류:', error);
-      
       // 401 에러인지 확인하고 처리
       if (isUnauthorizedError(error)) {
         handleUnauthorizedError();
@@ -557,11 +553,9 @@ class ApiService {
 
   // Chat APIs
   async getChatHistory(accessToken: string, roomId: string, page: number = 1, limit: number = 50): Promise<GetChatHistoryResponse> {
-    console.log(`[API] getChatHistory 호출: roomId=${roomId}, page=${page}, limit=${limit}`);
     const response = await this.request<GetChatHistoryResponse>(`/chat/room/${roomId}/history?page=${page}&limit=${limit}`, 
       this.withAuthHeader({ method: 'GET' }, accessToken)
     );
-    console.log(`[API] getChatHistory 응답: ${response.data.messages.length}개 메시지`);
     return response;
   }
 

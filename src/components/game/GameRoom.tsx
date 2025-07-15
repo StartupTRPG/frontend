@@ -16,9 +16,32 @@ interface GameRoomProps {
   players: Player[];
   shouldCreateGame?: boolean;
   onGameCreated?: () => void;
+  // 로딩 상태 props
+  gameLoading?: boolean;
+  contextLoading?: boolean;
+  agendaLoading?: boolean;
+  workLoading?: boolean;
+  overtimeLoading?: boolean;
+  resultLoading?: boolean;
+  prologueLoading?: boolean;
+  jobsLoading?: boolean;
 }
 
-export const GameRoom: React.FC<GameRoomProps> = ({ roomId, token, players, shouldCreateGame = false, onGameCreated }) => {
+export const GameRoom: React.FC<GameRoomProps> = ({ 
+  roomId, 
+  token, 
+  players, 
+  shouldCreateGame = false, 
+  onGameCreated,
+  gameLoading = false,
+  contextLoading = false,
+  agendaLoading = false,
+  workLoading = false,
+  overtimeLoading = false,
+  resultLoading = false,
+  prologueLoading = false,
+  jobsLoading = false
+}) => {
   const [gameState, setGameState] = useState<GameProgressResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -77,7 +100,6 @@ export const GameRoom: React.FC<GameRoomProps> = ({ roomId, token, players, shou
   // 게임 상태가 없고 에러가 "게임 상태를 찾을 수 없습니다"인 경우 자동으로 게임 생성
   useEffect(() => {
     if (!gameState && error === "게임 상태를 찾을 수 없습니다.") {
-      console.log('[GameRoom] 게임 상태가 없어 자동으로 게임 생성');
       createGame(roomId, players);
     }
   }, [gameState, error, roomId, players, createGame]);
@@ -85,7 +107,6 @@ export const GameRoom: React.FC<GameRoomProps> = ({ roomId, token, players, shou
   // shouldCreateGame이 true로 변경되면 게임 생성
   useEffect(() => {
     if (shouldCreateGame && !gameState) {
-      console.log('[GameRoom] 게임 시작 요청으로 게임 생성');
       createGame(roomId, players);
       onGameCreated?.(); // 게임 생성 완료 콜백 호출
     }
@@ -126,7 +147,11 @@ export const GameRoom: React.FC<GameRoomProps> = ({ roomId, token, players, shou
   };
 
   const handleCreateContext = () => {
-    createContext(roomId, 10);
+    if (gameState?.story) {
+      createContext(roomId, 10, gameState.story);
+    } else {
+      setError('스토리가 없습니다. 게임을 먼저 생성해주세요.');
+    }
   };
 
   const handleCreateAgenda = () => {
@@ -194,6 +219,7 @@ export const GameRoom: React.FC<GameRoomProps> = ({ roomId, token, players, shou
             currentTurn={gameState.current_turn}
             maxTurn={gameState.max_turn}
             roomId={roomId}
+            loading={contextLoading}
           />
         );
 
@@ -206,6 +232,7 @@ export const GameRoom: React.FC<GameRoomProps> = ({ roomId, token, players, shou
             currentTurn={gameState.current_turn}
             maxTurn={gameState.max_turn}
             roomId={roomId}
+            loading={agendaLoading}
           />
         );
 
@@ -217,6 +244,7 @@ export const GameRoom: React.FC<GameRoomProps> = ({ roomId, token, players, shou
             currentTurn={gameState.current_turn}
             maxTurn={gameState.max_turn}
             roomId={roomId}
+            loading={workLoading}
           />
         );
 
@@ -228,6 +256,7 @@ export const GameRoom: React.FC<GameRoomProps> = ({ roomId, token, players, shou
             currentTurn={gameState.current_turn}
             maxTurn={gameState.max_turn}
             roomId={roomId}
+            loading={overtimeLoading}
           />
         );
 
@@ -239,6 +268,7 @@ export const GameRoom: React.FC<GameRoomProps> = ({ roomId, token, players, shou
             setSelections={setSelections}
             onUpdateContext={handleUpdateContext}
             roomId={roomId}
+            loading={gameLoading}
           />
         );
 
@@ -251,6 +281,7 @@ export const GameRoom: React.FC<GameRoomProps> = ({ roomId, token, players, shou
             currentTurn={gameState.current_turn}
             maxTurn={gameState.max_turn}
             roomId={roomId}
+            loading={resultLoading}
           />
         );
 
@@ -262,6 +293,7 @@ export const GameRoom: React.FC<GameRoomProps> = ({ roomId, token, players, shou
             currentTurn={gameState.current_turn}
             maxTurn={gameState.max_turn}
             roomId={roomId}
+            loading={resultLoading}
           />
         );
 

@@ -17,9 +17,7 @@ export const useAutoRefresh = () => {
 
     refreshTimeoutRef.current = setTimeout(async () => {
       try {
-        console.log('토큰 자동 갱신 시도...');
         await refreshAccessToken();
-        console.log('토큰 갱신 성공');
         // 갱신 후 다음 갱신 스케줄링
         scheduleTokenRefresh();
       } catch (error) {

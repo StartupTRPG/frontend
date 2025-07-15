@@ -4,7 +4,6 @@ import { useAuthStore } from '../stores/authStore';
  * 401 에러 발생 시 모든 인증 관련 데이터를 정리하고 로그인 페이지로 리디렉션
  */
 export const handleUnauthorizedError = () => {
-  console.log('401 Unauthorized 에러 발생 - 인증 데이터 정리 및 로그인 페이지 리디렉션');
   
   // 1. Zustand 스토어에서 인증 상태 초기화
   const { logout } = useAuthStore.getState();

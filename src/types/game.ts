@@ -9,6 +9,7 @@ export interface Player {
 // 게임 단계 타입
 export type GamePhase = 
   | 'waiting'
+  | 'story_creation'
   | 'context_creation'
   | 'agenda_creation'
   | 'task_creation'
@@ -32,6 +33,7 @@ export interface AgendaOption {
   agenda_option_id: string;
   agenda_option_text: string;
   agenda_option_impact_summary: string;
+  icon: string; // 아이콘 필드 추가
 }
 
 export interface Agenda {
@@ -108,6 +110,7 @@ export interface CreateGameRequest {
 export interface CreateContextRequest {
   room_id: string;
   max_turn: number;
+  story: string; // story를 입력으로 받음
 }
 
 export interface CreateAgendaRequest {
@@ -144,7 +147,7 @@ export interface GetGameProgressRequest {
 // 서버 → 클라이언트 응답 타입
 export interface GameCreatedResponse {
   room_id: string;
-  story: string;
+  story: string; // story만 반환
   phase: 'context_creation';
 }
 

@@ -54,16 +54,13 @@ const Home: React.FC = () => {
     if (!socket) return;
     
     const handleGameFinish = (data: any) => {
-      console.log('[Home] 게임 종료됨:', data);
       // 방 목록 새로고침
       fetchRooms(false);
     };
 
-    console.log('[Home] FINISH_GAME 이벤트 리스너 등록');
     socket.on(SocketEventType.FINISH_GAME, handleGameFinish);
     
     return () => {
-      console.log('[Home] FINISH_GAME 이벤트 리스너 해제');
       socket.off(SocketEventType.FINISH_GAME, handleGameFinish);
     };
   }, [socket]); // 홈 경로로 이동할 때마다 실행
@@ -71,7 +68,6 @@ const Home: React.FC = () => {
   // 페이지 포커스 시 방 리스트 새로고침
   useEffect(() => {
     const handleFocus = () => {
-      console.log('[Home] 페이지 포커스 - 방 리스트 새로고침');
       fetchRooms(false); // 로딩 상태 없이 방 리스트만 새로고침
     };
 
@@ -83,7 +79,6 @@ const Home: React.FC = () => {
 
   // Home 페이지 진입 시 방 리스트 새로고침
   useEffect(() => {
-    console.log('[Home] 페이지 진입 - 방 리스트 새로고침');
     fetchRooms(false); // 로딩 상태 없이 방 리스트만 새로고침
   }, [location.pathname]);
 
@@ -133,8 +128,6 @@ const Home: React.FC = () => {
       const response = await getMyProfile();
       setProfile(response as UserProfileResponse);
     } catch (error) {
-      console.error('[Home] 프로필 조회 실패:', error);
-      
       // 프로필이 없는 경우 프로필 생성 페이지로 이동
       if (error instanceof Error && error.message.includes('Profile not found')) {
         showWarning('프로필이 없습니다. 프로필을 먼저 생성해주세요.', '프로필 필요');

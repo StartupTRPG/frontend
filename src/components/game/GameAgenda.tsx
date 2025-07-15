@@ -8,9 +8,10 @@ interface GameAgendaProps {
   currentTurn?: number;
   maxTurn?: number;
   roomId?: string;
+  loading?: boolean;
 }
 
-const GameAgenda: React.FC<GameAgendaProps> = ({ onCreateAgenda, companyContext, playerContextList, currentTurn, maxTurn, roomId }) => {
+const GameAgenda: React.FC<GameAgendaProps> = ({ onCreateAgenda, companyContext, playerContextList, currentTurn, maxTurn, roomId, loading = false }) => {
   return (
     <div style={{ padding: '20px' }}>
       <h2 style={{ textAlign: 'center', marginBottom: '30px' }}>📋 아젠다 생성</h2>
@@ -76,21 +77,43 @@ const GameAgenda: React.FC<GameAgendaProps> = ({ onCreateAgenda, companyContext,
           컨텍스트를 바탕으로 회의 아젠다를 생성합니다.
         </p>
         
-        <button 
-          onClick={onCreateAgenda}
-          style={{
-            backgroundColor: '#28a745',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
+        {loading ? (
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
             padding: '12px 24px',
             fontSize: '16px',
-            fontWeight: 'bold',
-            cursor: 'pointer'
-          }}
-        >
-          📋 아젠다 생성
-        </button>
+            color: '#666'
+          }}>
+            <div style={{ 
+              width: '20px', 
+              height: '20px', 
+              border: '2px solid #f3f3f3', 
+              borderTop: '2px solid #28a745', 
+              borderRadius: '50%', 
+              animation: 'spin 1s linear infinite',
+              marginRight: '10px'
+            }}></div>
+            아젠다 생성 중...
+          </div>
+        ) : (
+          <button 
+            onClick={onCreateAgenda}
+            style={{
+              backgroundColor: '#28a745',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '12px 24px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              cursor: 'pointer'
+            }}
+          >
+            📋 아젠다 생성
+          </button>
+        )}
       </div>
     </div>
   );

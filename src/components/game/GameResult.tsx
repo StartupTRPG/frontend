@@ -6,9 +6,10 @@ interface GameResultProps {
   currentTurn?: number;
   maxTurn?: number;
   roomId?: string;
+  loading?: boolean;
 }
 
-const GameResult: React.FC<GameResultProps> = ({ onCalculateResult, explanation, currentTurn, maxTurn, roomId }) => {
+const GameResult: React.FC<GameResultProps> = ({ onCalculateResult, explanation, currentTurn, maxTurn, roomId, loading = false }) => {
   return (
     <div style={{ padding: '20px' }}>
       <h2 style={{ textAlign: 'center', marginBottom: '30px' }}>📊 결과 계산</h2>
@@ -48,21 +49,43 @@ const GameResult: React.FC<GameResultProps> = ({ onCalculateResult, explanation,
           게임 설명을 바탕으로 최종 결과와 플레이어 랭킹을 계산합니다.
         </p>
         
-        <button 
-          onClick={onCalculateResult}
-          style={{
-            backgroundColor: '#f44336',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
+        {loading ? (
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
             padding: '12px 24px',
             fontSize: '16px',
-            fontWeight: 'bold',
-            cursor: 'pointer'
-          }}
-        >
-          📊 결과 계산
-        </button>
+            color: '#666'
+          }}>
+            <div style={{ 
+              width: '20px', 
+              height: '20px', 
+              border: '2px solid #f3f3f3', 
+              borderTop: '2px solid #f44336', 
+              borderRadius: '50%', 
+              animation: 'spin 1s linear infinite',
+              marginRight: '10px'
+            }}></div>
+            결과 계산 중...
+          </div>
+        ) : (
+          <button 
+            onClick={onCalculateResult}
+            style={{
+              backgroundColor: '#f44336',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '12px 24px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              cursor: 'pointer'
+            }}
+          >
+            📊 결과 계산
+          </button>
+        )}
       </div>
     </div>
   );

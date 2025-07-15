@@ -25,7 +25,6 @@ export const useAuthStore = create<AuthStore>()(
       error: null,
 
       login: (user, accessToken) => {
-        console.log('Login called with:', { user, accessToken });
         set({
           isAuthenticated: true,
           user,
