@@ -83,6 +83,40 @@
   color: var(--secondary-text-color);
 }
 
+/* --- Daily Briefing Card --- */
+.daily-briefing-card h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.3rem;
+  color: var(--secondary-text-color);
+  font-weight: 500;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f1f3f5;
+}
+.briefing-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.briefing-section h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+.briefing-section p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--secondary-text-color);
+}
+.briefing-section + .briefing-section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px dashed #e0e5f0;
+}
+
+
 .progress-card h3, .stats-card h3 {
   margin-top: 0;
   margin-bottom: 1.5rem;
@@ -356,72 +390,468 @@
   box-shadow: 0 8px 25px var(--primary-glow-color);
 }
 
-/* --- Work & Overtime State --- */
-.workspace-work {
-  animation: fade-in 0.5s ease-out;
-}
-
-.work-title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--text-color);
-  margin: 0 0 0.5rem 0;
-  text-align: center;
-}
-
-.work-options-list {
+/* --- New Work Session Styles --- */
+.workspace-work-session {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  margin-top: 1.5rem;
+  animation: fade-in 0.5s ease-out;
 }
 
-.option-card.work-option {
+.work-session-header {
+  text-align: center;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f1f3f5;
+}
+.work-session-header h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+.work-session-header p {
+  margin: 0.25rem 0 0 0;
+  color: var(--secondary-text-color);
+  font-size: 1rem;
+}
+
+.task-list {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
-.work-option-header {
+.task-card {
+  background: var(--card-bg-color);
+  border: 1px solid #e9ecef;
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.task-card-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
+  cursor: pointer;
 }
 
-.work-option-header h4 {
+.task-name {
   margin: 0;
   font-size: 1.2rem;
-  color: var(--primary-color);
-}
-
-.work-option-chance {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: white;
-  background: var(--primary-color);
-  padding: 0.4rem 0.8rem;
-  border-radius: 20px;
-  min-width: 60px;
-  text-align: center;
-}
-
-.work-option-desc {
-  margin: 0;
-  font-size: 0.95rem;
+  font-weight: 500;
   color: var(--secondary-text-color);
 }
 
-.work-option-details {
-  border-top: 1px solid #f1f3f5;
+.completed-badge {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #28a745;
+  background-color: #e9f7ec;
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+}
+
+/* --- Active Task Card --- */
+.task-card.active {
+  border-color: var(--primary-color);
+  box-shadow: 0 8px 30px var(--primary-glow-color);
+}
+.task-card.active .task-name {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.task-card-content {
+  margin-top: 1rem;
   padding-top: 1rem;
+  border-top: 1px solid #f1f3f5;
+  animation: slide-down-fade-in 0.5s ease-out;
+}
+
+@keyframes slide-down-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.task-description {
+  margin: 0 0 1.5rem 0;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--text-color);
+}
+
+.task-options {
   display: flex;
-  justify-content: space-between;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.task-option-button {
+  width: 100%;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.task-option-button:hover {
+  background-color: #e9f1ff;
+  border-color: var(--primary-color);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+.option-text {
+  display: block;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 0.5rem;
+}
+.option-summary {
+  font-size: 0.9rem;
+  color: var(--secondary-text-color);
+}
+
+
+/* --- Completed Task Card --- */
+.task-card.completed {
+  background: #f8f9fa;
+  opacity: 0.8;
+}
+.task-card.completed .task-name {
+  text-decoration: line-through;
+  color: #adb5bd;
+}
+
+
+/* --- Overtime / Rest Session Styles --- */
+.workspace-overtime-session {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  padding: 1rem; /* 전체적인 패딩 축소 */
+  border-radius: 18px;
+  animation: fade-in 0.5s ease-out;
+  transition: background-color 0.5s ease;
+}
+
+.overtime-card {
+  width: 100%;
+  max-width: 600px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 16px;
+  padding: 1.5rem 2rem; /* 패딩 축소 */
+  box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(10px);
+}
+
+.overtime-card-header {
+  text-align: center;
+  margin-bottom: 1rem; /* 마진 축소 */
+}
+
+.overtime-card-header h3 {
+  margin: 0.4rem 0 0 0; /* 마진 축소 */
+  font-size: 1.6rem; /* 폰트 크기 축소 */
+  font-weight: 700;
+}
+
+.task-type-badge {
+  display: inline-block;
+  font-size: 0.9rem; /* 폰트 크기 축소 */
+  font-weight: 600;
+  padding: 0.3rem 0.8rem; /* 패딩 축소 */
+  border-radius: 20px;
+}
+
+.overtime-description {
+  font-size: 1rem; /* 폰트 크기 축소 */
+  line-height: 1.6;
+  text-align: center;
+  margin: 0 0 1.5rem 0; /* 마진 축소 */
+  color: #555;
+}
+
+.overtime-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem; /* 간격 축소 */
+}
+
+.overtime-option-button {
+  width: 100%;
+  border-radius: 12px;
+  padding: 0.8rem; /* 패딩 축소 */
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid;
+  font-family: inherit; /* 폰트 상속받도록 수정 */
+}
+
+.overtime-option-button .option-text {
+  display: block;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+.overtime-option-button .option-summary {
   font-size: 0.9rem;
 }
 
-.detail-item.reward { color: #2f9e44; }
-.detail-item.cost { color: #e03131; }
+/* --- Theme: Overtime --- */
+.workspace-overtime-session.theme-overtime {
+  background: linear-gradient(160deg, #2c3e50, #465a70);
+  color: white;
+}
+.theme-overtime .overtime-card {
+  background: rgba(44, 62, 80, 0.7);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+.theme-overtime .task-type-badge {
+  color: #ffcdd2;
+  background-color: rgba(239, 83, 80, 0.2);
+}
+.theme-overtime .overtime-description {
+  color: #cfd8dc;
+}
+.theme-overtime .overtime-option-button {
+  background-color: transparent;
+  color: #ffcdd2;
+  border-color: #ef5350;
+}
+.theme-overtime .overtime-option-button:hover {
+  background-color: rgba(239, 83, 80, 0.2);
+  border-color: #ff8a80;
+  transform: translateY(-2px);
+}
+.theme-overtime .option-text {
+  color: white;
+}
+.theme-overtime .option-summary {
+  color: #b0bec5;
+}
+
+
+/* --- Theme: Rest --- */
+.workspace-overtime-session.theme-rest {
+  /* 수정: 그린민트 계열 그라데이션으로 변경 */
+  background: linear-gradient(160deg, #e6fffa, #c6f7e2);
+  color: #004d40; /* 어두운 그린민트 */
+}
+.theme-rest .overtime-card {
+  background: rgba(255, 255, 255, 0.85);
+  color: #004d40;
+}
+.theme-rest .task-type-badge {
+  color: #004d40;
+  /* 수정: 그린민트 계열로 변경 */
+  background-color: rgba(67, 181, 151, 0.3);
+}
+.theme-rest .overtime-description {
+  color: #00695c;
+}
+.theme-rest .overtime-option-button {
+  /* 수정: 그린민트 계열로 변경 */
+  background-color: #f0fdfa;
+  color: #00695c;
+  border-color: #7ddbc9;
+}
+.theme-rest .overtime-option-button:hover {
+  /* 수정: 그린민트 계열로 변경 */
+  background-color: #d9f7ef;
+  border-color: #64d1be;
+  transform: translateY(-2px);
+}
+.theme-rest .option-text {
+  color: #004d40;
+}
+.theme-rest .option-summary {
+  color: #00796b;
+}
+
+
+/* --- Game Result State (Overlay) --- */
+.game-result-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(30, 40, 50, 0.9);
+  backdrop-filter: blur(5px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  animation: fadeIn 0.5s ease-in-out;
+  padding: 1rem; /* 패딩 축소 */
+}
+
+.game-result-content {
+  width: 100%;
+  max-width: 700px; /* 최대 너비 축소 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem; /* 갭 축소 */
+}
+
+.result-summary-container {
+  text-align: center;
+  color: #fff;
+  animation: slide-down-fade-in 0.6s 0.2s ease-out backwards;
+}
+
+.result-outcome {
+  margin: 0;
+  font-size: 2.2rem; /* 폰트 크기 축소 */
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.result-outcome.success {
+  color: #4caf50;
+  text-shadow: 0 0 20px rgba(76, 175, 80, 0.8);
+}
+.result-outcome.failure {
+  color: #f44336;
+  text-shadow: 0 0 20px rgba(244, 67, 54, 0.8);
+}
+
+.result-summary-text {
+  margin: 0.25rem 0 0 0; /* 마진 축소 */
+  font-size: 1.1rem; /* 폰트 크기 축소 */
+  color: #ecf0f1;
+  opacity: 0.9;
+}
+
+.ranking-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem; /* 갭 축소 */
+}
+
+.ranking-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px; /* 반경 축소 */
+  padding: 0.8rem 1.2rem; /* 패딩 축소 */
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem; /* 갭 축소 */
+  animation: slide-up-fade-in 0.5s ease-out backwards;
+  transition: all 0.3s ease;
+}
+
+@keyframes slide-up-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px); /* 애니메이션 값 소폭 조정 */
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ranking-info {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem; /* 갭 축소 */
+}
+
+.rank-number {
+  font-size: 1.8rem; /* 폰트 크기 축소 */
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.5);
+  width: 25px; /* 너비 축소 */
+  text-align: center;
+}
+
+.rank-medal {
+  font-size: 2.2rem; /* 폰트 크기 축소 */
+}
+
+.player-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.player-name {
+  font-size: 1.15rem; /* 폰트 크기 축소 */
+  font-weight: 600;
+  color: #fff;
+}
+
+.player-role {
+  font-size: 0.9rem; /* 폰트 크기 축소 */
+  color: #bdc3c7;
+}
+
+.player-evaluation {
+  margin: 0.25rem 0 0 0; /* 마진 축소 */
+  padding-left: 0.8rem; /* 패딩 축소 */
+  border-left: 2px solid rgba(255, 255, 255, 0.2); /* 테두리 두께 축소 */
+  font-style: italic;
+  font-size: 0.9rem; /* 폰트 크기 축소 */
+  color: #ecf0f1;
+  line-height: 1.5; /* 줄간격 축소 */
+}
+
+/* Rank-specific styles */
+.ranking-card.rank-1 {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 193, 7, 0.1));
+  border-color: #ffd700;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3); /* 그림자 축소 */
+  transform: scale(1.01); /* 스케일 축소 */
+}
+
+.ranking-card.rank-2 {
+  background: linear-gradient(135deg, rgba(192, 192, 192, 0.2), rgba(192, 192, 192, 0.1));
+  border-color: #c0c0c0;
+}
+
+.ranking-card.rank-3 {
+  background: linear-gradient(135deg, rgba(205, 127, 50, 0.2), rgba(184, 115, 51, 0.1));
+  border-color: #cd7f32;
+}
+
+.close-result-button {
+  margin-top: 1rem;
+  padding: 0.7rem 1.8rem; /* 패딩 축소 */
+  font-size: 0.95rem; /* 폰트 크기 축소 */
+  font-weight: 600;
+  color: #333;
+  background-color: #fff;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  animation: slide-up-fade-in 0.5s 1.5s ease-out backwards;
+}
+.close-result-button:hover {
+  background-color: #eee;
+  transform: translateY(-2px);
+}
+
 
 /* --- Work Result State --- */
 .workspace-work-result {
@@ -505,6 +935,33 @@
   cursor: pointer;
 }
 
+/* --- 임시 야근/휴식 토글 버튼 --- */
+.temp-overtime-toggle {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  z-index: 10;
+}
+.temp-overtime-toggle button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.temp-overtime-toggle button:hover {
+  background: #f0f0f0;
+}
+.temp-overtime-toggle button:disabled {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+  cursor: not-allowed;
+}
+
 
 /* --- Right Sidebar (Chat) --- */
 .chat-container {
@@ -562,4 +1019,226 @@
     border: none;
     width: 100%;
     background-color: transparent;
+}
+
+.option-impact-summary {
+  font-size: 13px;
+  color: #888;
+  margin-top: 10px;
+  background-color: #f9f9f9;
+  padding: 8px;
+  border-radius: 4px;
+  border-left: 3px solid #ddd;
+}
+
+.workspace-agenda.new-design .option-card {
+  flex-direction: row;
+  align-items: center; /* 아이콘과 텍스트를 중앙 정렬 */
+  text-align: left;
+  gap: 15px;
+  transition: all 0.2s ease-in-out;
+  border: 1px solid #e0e0e0;
+  padding: 12px 15px; /* 패딩 조정 */
+}
+
+.workspace-agenda.new-design .option-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+  border-color: #a5b4fc;
+}
+
+.new-design .option-icon {
+  font-size: 1.8rem; /* 크기 유지 */
+  font-weight: 600; /* 굵기 유지 */
+  color: var(--text-color); /* 검은색 계열 텍스트 색상 */
+  width: 44px; /* 정렬을 위한 너비 유지 */
+  height: 44px;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  /* 배경, 그림자 등 모든 장식 제거 */
+  background: none;
+  border-radius: 0;
+  box-shadow: none;
+  transition: none; /* 전환 효과 제거 */
+}
+
+/* hover 효과 제거 */
+/*
+.option-card:hover .new-design .option-icon {
+  transform: scale(1.1);
+  box-shadow: 0 4px 10px rgba(127, 149, 252, 0.6);
+}
+*/
+
+.new-design .option-content h4 {
+  margin-top: 0;
+  margin-bottom: 8px; /* 마진 축소 */
+  font-size: 15px; /* 폰트 크기 축소 */
+  font-weight: 600;
+}
+
+.impact-summary-details {
+  line-height: 1.4; /* 줄간격 축소 */
+}
+
+.impact-summary-details p {
+  margin: 2px 0; /* 마진 축소 */
+  font-size: 12px; /* 폰트 크기 축소 */
+  line-height: 1.5;
+}
+
+.impact-summary-details .impact-positive {
+  color: #228B22; /* ForestGreen */
+}
+.impact-summary-details .impact-negative {
+  color: #B22222; /* FireBrick */
+}
+
+/* GM Note Style */
+.gm-note {
+  display: flex;
+  background-color: #fffbe6; /* 배경색 노란색으로 변경 */
+  border: 1px solid #ffe58f; /* 테두리 노란색 계열로 변경 */
+  border-radius: 6px;
+  padding: 12px 15px;
+  margin-bottom: 20px;
+  align-items: center;
+  gap: 12px;
+}
+.gm-note-icon {
+  font-size: 1.2rem;
+  opacity: 0.7;
+}
+.gm-note p {
+  margin: 0;
+  font-style: italic;
+  color: #664d03; /* 폰트 색상 변경 (대비 향상) */
+  line-height: 1.5;
+  font-size: 13px;
+}
+
+/* Agenda Header */
+.new-design .agenda-header {
+  margin-bottom: 8px;
+}
+.new-design .agenda-title {
+  font-size: 22px; /* 타이틀 폰트 크기 축소 */
+}
+.new-design .workspace-prompt {
+  font-size: 14px; /* 프롬프트 폰트 크기 축소 */
+  margin-bottom: 15px; /* 마진 축소 */
+}
+
+
+/* Timer Progress Bar Style */
+.timer-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #777;
+  font-size: 14px;
+}
+.timer-progress-bar {
+  width: 120px;
+  height: 8px;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.timer-progress {
+  height: 100%;
+  width: 100%;
+  background-color: #6366f1;
+  border-radius: 4px;
+  animation: timer-countdown 10s linear forwards;
+}
+
+@keyframes timer-countdown {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+/* --- Prologue & Job Reveal Styles --- */
+.prologue-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.prologue-container {
+  background-color: #fff;
+  padding: 40px;
+  border-radius: 12px;
+  max-width: 600px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  border: 1px solid #ddd;
+}
+
+.prologue-title {
+  font-size: 28px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.prologue-story {
+  font-size: 16px;
+  line-height: 1.7;
+  color: #555;
+  margin-bottom: 30px;
+  text-align: left;
+}
+
+.job-reveal-container {
+  margin-top: 20px;
+  margin-bottom: 30px;
+  animation: slideUpFadeIn 0.8s 0.3s ease-out backwards;
+}
+
+.job-reveal-container h3 {
+  font-size: 18px;
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.job-card-reveal {
+  display: inline-block;
+  position: relative;
+  border: 1px solid #eee;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.job-card-reveal img {
+  width: 200px; /* Adjust size as needed */
+  display: block;
+}
+
+@keyframes slideUpFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 } 
