@@ -9,7 +9,11 @@ import { SocketEventType } from '../types/socket';
 import { UserProfileResponse } from '../services/api';
 import useModal from '../hooks/useModal';
 import Modal from '../components/common/Modal';
+
+import GameRoom from '../components/game/GameRoom';
+import { Player } from '../types/game';
 import './GamePage.css';
+
 
 // --- 화면 표시용 더미 데이터 (백엔드와 무관) ---
 // 이 데이터는 UI 디자인 프로토타이핑을 위한 샘플이며, 실제 게임 로직/데이터와는 아무런 관련이 없습니다.
@@ -196,6 +200,7 @@ const GamePage: React.FC = () => {
   const [profile, setProfile] = useState<UserProfileResponse | null>(null);
   const [chatHistory, setChatHistory] = useState<any[]>([]);
   const [gameStarted, setGameStarted] = useState(false);
+  const [shouldCreateGame, setShouldCreateGame] = useState(false);
   const { modalState, showInfo, showError, hideModal } = useModal();
 
   // 프로필은 최초 1회만
@@ -285,6 +290,16 @@ const GamePage: React.FC = () => {
         return;
       }
       
+      // 게임 진행 중 재입장 에러인 경우 조용히 처리
+      if (error.message === 'Game in progress - rejoining as existing player') {
+        console.log('[GamePage] 게임 진행 중 재입장, 1초 후 재시도');
+        joinTimeoutRef.current = setTimeout(() => {
+          console.log('[GamePage] 게임 진행 중 재입장 재시도:', roomId);
+          joinAttemptedRef.current = false;
+        }, 1000);
+        return;
+      }
+      
       // 기타 에러는 재시도하지 않음
       if (error.message !== 'Already joining this room' && 
           error.message !== 'Already joining another room' &&
@@ -331,6 +346,8 @@ const GamePage: React.FC = () => {
       if (data.room_id === roomId) {
         console.log('[GamePage] 게임 시작됨:', data);
         setGameStarted(true);
+        setShouldCreateGame(true); // 게임 생성 플래그 설정
+        
         // 게임 시작 시 방 정보 갱신 (중복 방지)
         if (!isRefreshing) {
           isRefreshing = true;
@@ -403,6 +420,15 @@ const GamePage: React.FC = () => {
   const isHost = room.host_profile_id === profile.id;
   const otherPlayers = room.players?.filter((p: any) => p.profile_id !== profile.id) || [];
 
+  // 플레이어 목록을 LLM 게임 형식으로 변환
+  const getLlmPlayers = (): Player[] => {
+    if (!room.players) return [];
+    return room.players.map((player: any) => ({
+      id: player.profile_id,
+      name: player.display_name
+    }));
+  };
+
   // 버튼 핸들러
   const handleLeaveGame = () => { 
     if (roomId) {
@@ -466,6 +492,32 @@ const GamePage: React.FC = () => {
               ))}
             </div>
           </div>
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* 상단: 방 이름, 나가기 버튼 */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderBottom: '1px solid #eee' }}>
+        <h2 style={{ margin: 0 }}>
+          {room.title} - LLM 게임 진행 중
+        </h2>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {!gameStarted && (
+            <button onClick={handleLeaveGame} style={{ background: '#f44336', color: 'white', border: 'none', borderRadius: 4, padding: '8px 16px', fontWeight: 'bold' }}>
+              게임 나가기
+            </button>
+          )}
+        </div>
+      </div>
+      
+      {/* 메인: 좌측 게임 영역, 우측 채팅 */}
+      <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+        {/* 좌측: LLM 게임 영역 */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: 24, gap: 24, overflowY: 'auto' }}>
+          <GameRoom 
+            roomId={roomId!}
+            token={useAuthStore.getState().accessToken || ''}
+            players={getLlmPlayers()}
+            shouldCreateGame={shouldCreateGame}
+            onGameCreated={() => setShouldCreateGame(false)}
+          />
         </div>
       </aside>
 

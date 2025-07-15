@@ -257,6 +257,8 @@ export interface ChatMessageResponse {
 class ApiService {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
+    console.log(`[API] 요청 URL: ${url}`);
+    console.log(`[API] API_BASE_URL: ${API_BASE_URL}`);
     
     const defaultOptions: RequestInit = {
       credentials: 'include',

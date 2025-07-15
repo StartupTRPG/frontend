@@ -213,6 +213,16 @@ const RoomLobby: React.FC = () => {
         return;
       }
       
+      // 게임 진행 중 재입장 에러인 경우 조용히 처리
+      if (error.message === 'Game in progress - rejoining as existing player') {
+        console.log('[RoomLobby] 게임 진행 중 재입장, 1초 후 재시도');
+        joinTimeoutRef.current = setTimeout(() => {
+          console.log('[RoomLobby] 게임 진행 중 재입장 재시도:', roomId);
+          joinAttemptedRef.current = false;
+        }, 1000);
+        return;
+      }
+      
       // 기타 에러는 재시도하지 않음
       if (error.message !== 'Already joining this room' && 
           error.message !== 'Already joining another room' &&
@@ -379,8 +389,9 @@ const RoomLobby: React.FC = () => {
           });
         }
         
-        // 게임 페이지로 이동
+        // 모든 플레이어가 게임 페이지로 이동
         navigate(`/game/${roomId}`);
+        
         showInfo(`${data.host_display_name}님이 게임을 시작했습니다.`, '게임 시작');
       }
     };
@@ -460,8 +471,12 @@ const RoomLobby: React.FC = () => {
   const handleStartGame = () => {
     if (!roomId) return;
     setGameStarting(true);
+    
+    // 먼저 게임 시작 요청 전송
     startGame(roomId);
-    // 서버에서 응답이 오면 handleGameStart에서 setGameStarting(false) 처리
+    
+    // 게임 시작 요청 후 모든 플레이어가 게임 페이지로 이동
+    // (handleGameStart에서 처리됨)
   };
 
   const handleFinishGame = async () => {
