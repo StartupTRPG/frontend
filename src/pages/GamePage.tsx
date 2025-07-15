@@ -370,9 +370,7 @@ const GamePage: React.FC = () => {
           agenda_list: data.agenda_list
         });
         setAgendaLoading(false); // 로딩 완료
-        
-        // 아젠다 상태로 설정
-        setWorkspaceState('agenda');
+        // workspaceState는 이미 'agenda'로 설정되어 있으므로 변경하지 않음
       } else {
       }
     };
@@ -386,11 +384,41 @@ const GamePage: React.FC = () => {
       }
     };
 
+    // game_progress_updated 이벤트 핸들러 추가
+    const handleGameProgressUpdated = (data: any) => {
+      if (data.room_id === roomId) {
+        // agenda 데이터가 있으면 처리
+        if (data.agenda_list && data.agenda_list.length > 0) {
+          setAgendaData({
+            description: data.description || '아젠다 설명',
+            agenda_list: data.agenda_list
+          });
+          setAgendaLoading(false); // 로딩 완료
+        }
+        
+        // context 데이터가 있으면 처리
+        if (data.company_context && data.player_context_list) {
+          setContextData({
+            company_context: data.company_context,
+            player_context_list: data.player_context_list
+          });
+          setContextLoading(false);
+        }
+        
+        // story 데이터가 있으면 처리
+        if (data.story) {
+          setPrologueData({ story: data.story });
+          setPrologueLoading(false);
+        }
+      }
+    };
+
     socket.on(SocketEventType.START_GAME, handleGameStart);
     socket.on('story_created', handleStoryCreated);
     socket.on('context_created', handleContextCreated);
     socket.on(SocketEventType.CREATE_AGENDA, handleAgendaCreated);
     socket.on(SocketEventType.FINISH_GAME, handleGameFinish);
+    socket.on(SocketEventType.GAME_PROGRESS_UPDATED, handleGameProgressUpdated); // 추가
     
     return () => {  
       socket.off(SocketEventType.START_GAME, handleGameStart);
@@ -398,6 +426,7 @@ const GamePage: React.FC = () => {
       socket.off('context_created', handleContextCreated);
       socket.off(SocketEventType.CREATE_AGENDA, handleAgendaCreated);
       socket.off(SocketEventType.FINISH_GAME, handleGameFinish);
+      socket.off(SocketEventType.GAME_PROGRESS_UPDATED, handleGameProgressUpdated); // 추가
     };
   }, [socket, roomId, navigate, getRoom]);
 
@@ -917,6 +946,7 @@ const GamePage: React.FC = () => {
                       // 아젠다 생성 요청
                       if (socket && roomId) {
                         setAgendaLoading(true); // 아젠다 로딩 시작
+                        setWorkspaceState('agenda'); // 아젠다 상태로 즉시 전환
                         socket.emit(SocketEventType.CREATE_AGENDA, { room_id: roomId });
                       }
                     }}
@@ -1049,43 +1079,8 @@ const GamePage: React.FC = () => {
             {/* --- 상태 1: Agenda (안건 투표) --- */}
             {/* ----------------------------------- */}
             {workspaceState === 'agenda' && (() => {
-              if (agendaLoading) {
-                return (
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    padding: '40px',
-                    fontSize: '18px',
-                    color: '#666'
-                  }}>
-                    <div style={{ 
-                      width: '24px', 
-                      height: '24px', 
-                      border: '3px solid #f3f3f3', 
-                      borderTop: '3px solid #28a745', 
-                      borderRadius: '50%', 
-                      animation: 'spin 1s linear infinite',
-                      marginRight: '15px'
-                    }}></div>
-                    아젠다 데이터를 불러오는 중...
-                  </div>
-                );
-              }
-              
-              if (!agendaData || !agendaData.agenda_list || !agendaData.agenda_list[agendaIndex]) {
-                return (
-                  <div style={{ 
-                    textAlign: 'center',
-                    padding: '40px',
-                    fontSize: '18px',
-                    color: '#666'
-                  }}>
-                    아젠다 데이터가 없습니다.
-                  </div>
-                );
-              }
-              
+              // agendaData가 있으면 로딩 상태를 무시하고 데이터 표시
+              if (agendaData && agendaData.agenda_list && agendaData.agenda_list.length > 0) {
               const currentAgenda = agendaData.agenda_list[agendaIndex];
               
               return (
@@ -1127,6 +1122,44 @@ const GamePage: React.FC = () => {
                       </div>
                     ))}
                   </div>
+                  </div>
+                );
+              }
+              
+              // agendaData가 없고 로딩 중일 때만 로딩 화면 표시
+              if (agendaLoading) {
+                return (
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    padding: '40px',
+                    fontSize: '18px',
+                    color: '#666'
+                  }}>
+                    <div style={{ 
+                      width: '24px', 
+                      height: '24px', 
+                      border: '3px solid #f3f3f3', 
+                      borderTop: '3px solid #28a745', 
+                      borderRadius: '50%', 
+                      animation: 'spin 1s linear infinite',
+                      marginRight: '15px'
+                    }}></div>
+                    Daily Scrum 준비 중...
+                  </div>
+                );
+              }
+              
+              // 데이터가 없고 로딩도 아닐 때
+              return (
+                <div style={{ 
+                  textAlign: 'center',
+                  padding: '40px',
+                  fontSize: '18px',
+                  color: '#666'
+                }}>
+                  아젠다 데이터가 없습니다.
                 </div>
               );
             })()}
