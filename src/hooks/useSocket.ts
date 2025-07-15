@@ -3,6 +3,28 @@ import { io, Socket } from 'socket.io-client';
 import { SocketEventType, UserInfo } from '../types/socket';
 import { handleUnauthorizedError } from '../utils/authUtils';
 import { useSocketStore } from '../stores/socketStore';
+import {
+  GameProgressResponse,
+  CreateGameRequest,
+  CreateContextRequest,
+  CreateAgendaRequest,
+  CreateTaskRequest,
+  CreateOvertimeRequest,
+  UpdateContextRequest,
+  CreateExplanationRequest,
+  CalculateResultRequest,
+  GetGameProgressRequest,
+  GameCreatedResponse,
+  ContextCreatedResponse,
+  AgendaCreatedResponse,
+  TaskCreatedResponse,
+  OvertimeCreatedResponse,
+  ContextUpdatedResponse,
+  ExplanationCreatedResponse,
+  ResultCalculatedResponse,
+  ErrorResponse,
+  Player
+} from '../types/game';
 
 interface UseSocketOptions {
   token: string;
@@ -10,6 +32,7 @@ interface UseSocketOptions {
   onDisconnect?: () => void;
   onError?: (error: string) => void;
   onRoomRejoin?: (roomId: string) => void; // 재연결 후 방 재입장 시 호출
+  onGameStateChange?: (gameState: GameProgressResponse | null) => void; // 게임 상태 변경 콜백
 }
 
 // 전역 소켓 인스턴스 관리
@@ -22,9 +45,14 @@ let isJoiningRoom = false; // 방 입장 중인지 추적
 let currentJoiningRoomId: string | null = null; // 현재 입장 시도 중인 방 ID
 let lastLeaveTime = 0; // 마지막 방 나가기 시간 (재입장 방지용)
 
+// 게임 상태 관리
+let globalGameState: GameProgressResponse | null = null;
+let globalGameEventListenersRegistered = false; // 게임 이벤트 리스너 등록 여부 추적
+
 export const useSocket = (options: UseSocketOptions) => {
-  const { token, onConnect, onDisconnect, onError, onRoomRejoin } = options;
+  const { token, onConnect, onDisconnect, onError, onRoomRejoin, onGameStateChange } = options;
   const onRoomRejoinRef = useRef(onRoomRejoin);
+  const onGameStateChangeRef = useRef(onGameStateChange);
   
   // 전역 소켓 상태 사용
   const {
@@ -45,6 +73,10 @@ export const useSocket = (options: UseSocketOptions) => {
   useEffect(() => {
     onRoomRejoinRef.current = onRoomRejoin;
   }, [onRoomRejoin]);
+
+  useEffect(() => {
+    onGameStateChangeRef.current = onGameStateChange;
+  }, [onGameStateChange]);
 
   // 소켓 연결
   const connect = useCallback(() => {
@@ -166,6 +198,67 @@ export const useSocket = (options: UseSocketOptions) => {
       globalEventListenersRegistered = true;
     }
 
+    // 게임 이벤트 리스너 등록
+    if (!globalGameEventListenersRegistered) {
+      console.log('[useSocket] 게임 이벤트 리스너 등록');
+      
+      socket.on('game_created', (data: GameCreatedResponse) => {
+        console.log('[useSocket] 게임 생성됨:', data);
+        globalGameState = globalGameState ? { ...globalGameState, ...data } : null;
+        onGameStateChangeRef.current?.(globalGameState);
+      });
+
+      socket.on('context_created', (data: ContextCreatedResponse) => {
+        console.log('[useSocket] 컨텍스트 생성됨:', data);
+        globalGameState = globalGameState ? { ...globalGameState, ...data } : null;
+        onGameStateChangeRef.current?.(globalGameState);
+      });
+
+      socket.on('agenda_created', (data: AgendaCreatedResponse) => {
+        console.log('[useSocket] 아젠다 생성됨:', data);
+        globalGameState = globalGameState ? { ...globalGameState, agenda_list: data.agenda_list } : null;
+        onGameStateChangeRef.current?.(globalGameState);
+      });
+
+      socket.on('task_created', (data: TaskCreatedResponse) => {
+        console.log('[useSocket] 태스크 생성됨:', data);
+        globalGameState = globalGameState ? { ...globalGameState, task_list: data.task_list } : null;
+        onGameStateChangeRef.current?.(globalGameState);
+      });
+
+      socket.on('overtime_created', (data: OvertimeCreatedResponse) => {
+        console.log('[useSocket] 오버타임 생성됨:', data);
+        globalGameState = globalGameState ? { ...globalGameState, overtime_task_list: data.task_list } : null;
+        onGameStateChangeRef.current?.(globalGameState);
+      });
+
+      socket.on('context_updated', (data: ContextUpdatedResponse) => {
+        console.log('[useSocket] 컨텍스트 업데이트됨:', data);
+        globalGameState = globalGameState ? { ...globalGameState, ...data } : null;
+        onGameStateChangeRef.current?.(globalGameState);
+      });
+
+      socket.on('explanation_created', (data: ExplanationCreatedResponse) => {
+        console.log('[useSocket] 설명 생성됨:', data);
+        globalGameState = globalGameState ? { ...globalGameState, explanation: data.explanation } : null;
+        onGameStateChangeRef.current?.(globalGameState);
+      });
+
+      socket.on('result_calculated', (data: ResultCalculatedResponse) => {
+        console.log('[useSocket] 결과 계산됨:', data);
+        globalGameState = globalGameState ? { ...globalGameState, game_result: data.game_result, player_rankings: data.player_rankings } : null;
+        onGameStateChangeRef.current?.(globalGameState);
+      });
+
+      socket.on('game_progress', (data: GameProgressResponse) => {
+        console.log('[useSocket] 게임 진행 상황:', data);
+        globalGameState = data;
+        onGameStateChangeRef.current?.(globalGameState);
+      });
+
+      globalGameEventListenersRegistered = true;
+    }
+
     globalSocket = socket;
     globalToken = token;
     setSocket(socket);
@@ -178,7 +271,9 @@ export const useSocket = (options: UseSocketOptions) => {
       globalSocket = null;
       globalToken = null;
       globalEventListenersRegistered = false;
+      globalGameEventListenersRegistered = false; // 게임 이벤트 리스너도 초기화
       globalLastRoom = null;
+      globalGameState = null; // 게임 상태도 초기화
       isConnecting = false;
       isJoiningRoom = false; // 방 입장 상태 초기화
       currentJoiningRoomId = null; // 현재 입장 시도 중인 방 ID 초기화
@@ -249,6 +344,12 @@ export const useSocket = (options: UseSocketOptions) => {
             setCurrentRoom(null);
             globalLastRoom = null;
             reject(new Error('Room has been deleted'));
+          } 
+          // 게임 진행 중 입장 차단 에러인 경우, 기존 사용자라면 재입장 허용
+          else if (response.error.includes('Cannot join room while game is in progress')) {
+            console.log('[useSocket] 게임 진행 중 입장 차단, 기존 사용자 재입장 시도:', roomId);
+            // 기존 사용자 재입장 시도 (서버에서 처리됨)
+            reject(new Error('Game in progress - rejoining as existing player'));
           } else {
             reject(new Error(response.error));
           }
@@ -321,6 +422,136 @@ export const useSocket = (options: UseSocketOptions) => {
     });
   }, []);
 
+  // 게임 액션 함수들
+  const createGame = useCallback((roomId: string, playerList: Player[]) => {
+    if (!globalSocket?.connected) {
+      console.error('[useSocket] 소켓이 연결되지 않았습니다.');
+      return;
+    }
+    
+    const request: CreateGameRequest = {
+      room_id: roomId,
+      player_list: playerList
+    };
+    
+    globalSocket.emit('create_game', request);
+    console.log('[useSocket] 게임 생성 요청:', request);
+  }, []);
+
+  const createContext = useCallback((roomId: string, maxTurn: number = 10) => {
+    if (!globalSocket?.connected) {
+      console.error('[useSocket] 소켓이 연결되지 않았습니다.');
+      return;
+    }
+    
+    const request: CreateContextRequest = {
+      room_id: roomId,
+      max_turn: maxTurn
+    };
+    
+    globalSocket.emit('create_context', request);
+    console.log('[useSocket] 컨텍스트 생성 요청:', request);
+  }, []);
+
+  const createAgenda = useCallback((roomId: string) => {
+    if (!globalSocket?.connected) {
+      console.error('[useSocket] 소켓이 연결되지 않았습니다.');
+      return;
+    }
+    
+    const request: CreateAgendaRequest = {
+      room_id: roomId
+    };
+    
+    globalSocket.emit('create_agenda', request);
+    console.log('[useSocket] 아젠다 생성 요청:', request);
+  }, []);
+
+  const createTask = useCallback((roomId: string) => {
+    if (!globalSocket?.connected) {
+      console.error('[useSocket] 소켓이 연결되지 않았습니다.');
+      return;
+    }
+    
+    const request: CreateTaskRequest = {
+      room_id: roomId
+    };
+    
+    globalSocket.emit('create_task', request);
+    console.log('[useSocket] 태스크 생성 요청:', request);
+  }, []);
+
+  const createOvertime = useCallback((roomId: string) => {
+    if (!globalSocket?.connected) {
+      console.error('[useSocket] 소켓이 연결되지 않았습니다.');
+      return;
+    }
+    
+    const request: CreateOvertimeRequest = {
+      room_id: roomId
+    };
+    
+    globalSocket.emit('create_overtime', request);
+    console.log('[useSocket] 오버타임 생성 요청:', request);
+  }, []);
+
+  const updateContext = useCallback((roomId: string, selections: Omit<UpdateContextRequest, 'room_id'>) => {
+    if (!globalSocket?.connected) {
+      console.error('[useSocket] 소켓이 연결되지 않았습니다.');
+      return;
+    }
+    
+    const request: UpdateContextRequest = {
+      room_id: roomId,
+      ...selections
+    };
+    
+    globalSocket.emit('update_context', request);
+    console.log('[useSocket] 컨텍스트 업데이트 요청:', request);
+  }, []);
+
+  const createExplanation = useCallback((roomId: string) => {
+    if (!globalSocket?.connected) {
+      console.error('[useSocket] 소켓이 연결되지 않았습니다.');
+      return;
+    }
+    
+    const request: CreateExplanationRequest = {
+      room_id: roomId
+    };
+    
+    globalSocket.emit('create_explanation', request);
+    console.log('[useSocket] 설명 생성 요청:', request);
+  }, []);
+
+  const calculateResult = useCallback((roomId: string) => {
+    if (!globalSocket?.connected) {
+      console.error('[useSocket] 소켓이 연결되지 않았습니다.');
+      return;
+    }
+    
+    const request: CalculateResultRequest = {
+      room_id: roomId
+    };
+    
+    globalSocket.emit('calculate_result', request);
+    console.log('[useSocket] 결과 계산 요청:', request);
+  }, []);
+
+  const getGameProgress = useCallback((roomId: string) => {
+    if (!globalSocket?.connected) {
+      console.error('[useSocket] 소켓이 연결되지 않았습니다.');
+      return;
+    }
+    
+    const request: GetGameProgressRequest = {
+      room_id: roomId
+    };
+    
+    globalSocket.emit('get_game_progress', request);
+    console.log('[useSocket] 게임 진행 상황 조회 요청:', request);
+  }, []);
+
   // 컴포넌트 마운트 시 연결
   useEffect(() => {
     connect();
@@ -341,6 +572,16 @@ export const useSocket = (options: UseSocketOptions) => {
     finishGame,
     sendLobbyMessage,
     sendGameMessage,
+    // 게임 액션 함수들
+    createGame,
+    createContext,
+    createAgenda,
+    createTask,
+    createOvertime,
+    updateContext,
+    createExplanation,
+    calculateResult,
+    getGameProgress,
   };
 };
 
@@ -353,7 +594,9 @@ export const disconnectGlobalSocket = () => {
   }
   globalToken = null;
   globalEventListenersRegistered = false;
+  globalGameEventListenersRegistered = false; // 게임 이벤트 리스너도 초기화
   globalLastRoom = null;
+  globalGameState = null; // 게임 상태도 초기화
   isConnecting = false;
   isJoiningRoom = false; // 방 입장 상태 초기화
   currentJoiningRoomId = null; // 현재 입장 시도 중인 방 ID 초기화

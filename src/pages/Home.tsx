@@ -19,7 +19,8 @@ const Home: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
   const [autoRefreshInterval, setAutoRefreshInterval] = useState<number>(5); // 0: 비활성화, 1, 5, 10초 (기본값: 5초)
-  
+  const DEFAULT_AVATAR_URL = "https://ssl.pstatic.net/static/pwe/address/img_profile.png";
+
   // 인증 관련 user는 그대로 두고, 나머지는 profile 사용
   const { user, logout } = useAuthStore();
   const { getRooms, createRoom, logout: apiLogout } = useApi();
@@ -237,7 +238,9 @@ const Home: React.FC = () => {
         <div className="home-logo-container">
           <img src="/images/ChatGPT Image 2025년 7월 14일 오후 11_26_38.png" alt="뽀롱인 로고" className="home-logo-img" />
         </div>
-        <div className="home-profile-icon" onClick={() => navigate('/create-profile')} title="프로필 보기"></div>
+        <div className="home-profile-icon" onClick={() => navigate('/create-profile')} title="프로필 보기">
+          <img src={profile?.avatar_url || DEFAULT_AVATAR_URL} alt="프로필 아이콘" className="home-profile-img" />
+        </div>
       </header>
       
       <div className="filter-container">
