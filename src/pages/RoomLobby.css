@@ -1,0 +1,296 @@
+@import url('../assets/fonts/fonts.css');
+
+.lobby-page-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--background-color);
+  font-family: 'Lekoche', 'Gmarket Sans', '맑은 고딕', sans-serif;
+}
+
+/* Header */
+.lobby-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: var(--card-bg-color);
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+.lobby-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin: 0;
+}
+
+.leave-button {
+  background-color: #ff7875;
+  color: white;
+  border: none;
+  border-radius: 15px;
+  padding: 0.6rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+.leave-button:hover {
+  background-color: #f55a55;
+}
+
+/* Main Content */
+.lobby-main-content {
+  flex: 1;
+  display: flex;
+  padding: 2rem;
+  gap: 2rem;
+  min-height: 0;
+}
+
+/* Left Section: Players & Info */
+.lobby-left-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  overflow-y: auto;
+}
+
+.info-card, .players-card {
+  background-color: var(--card-bg-color);
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 15px var(--shadow-color);
+  border: 1px solid var(--border-color);
+}
+
+.info-card h3, .players-card h3 {
+  font-size: 1.4rem;
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: var(--secondary-text-color);
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8rem;
+}
+.info-item {
+    font-size: 1rem;
+}
+.info-item b {
+    color: var(--primary-color);
+    margin-right: 0.5rem;
+}
+
+/* Player List -> Player Cards */
+.player-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+.player-card {
+    background-color: #f8faff;
+    border: 1px solid var(--border-color);
+    border-radius: 15px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+.player-avatar {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid white;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+.player-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-top: 0.5rem;
+}
+.player-role {
+    font-size: 0.9rem;
+    color: var(--light-text-color);
+}
+.player-status-badge {
+    padding: 0.2rem 0.8rem;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+.player-status-badge.host {
+    background-color: #e6f7ff;
+    color: #1890ff;
+}
+.player-status-badge.ready {
+    background-color: #f6ffed;
+    color: #52c41a;
+}
+.player-status-badge.not-ready {
+    background-color: #fffbe6;
+    color: #faad14;
+}
+
+.player-job-display {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin: 4px 0;
+    padding: 2px 8px;
+    background-color: #e8f0ff;
+    border-radius: 8px;
+}
+
+.select-job-button {
+    margin-top: 8px;
+    background-color: var(--button-color);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 6px 14px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+.select-job-button:hover {
+    background-color: var(--button-hover-color);
+}
+
+/* Right Section: Chat */
+.lobby-right-section {
+  width: 400px;
+  border-left: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Footer */
+.lobby-footer {
+  padding: 1.5rem;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: var(--card-bg-color);
+  box-shadow: 0 -2px 8px var(--shadow-color);
+}
+
+.action-button {
+  min-width: 220px;
+  border: none;
+  border-radius: 15px;
+  padding: 1rem 2rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.action-button.start {
+  background-color: var(--button-color);
+  color: white;
+}
+.action-button.start:hover {
+  background-color: var(--button-hover-color);
+}
+.action-button.ready {
+  background-color: #ff9a2a;
+  color: white;
+}
+.action-button.ready.is-ready {
+  background-color: #28a745;
+}
+.action-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  color: #888;
+}
+
+.game-status-text {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+.game-status-text.playing { color: var(--status-green); }
+.game-status-text.finished { color: var(--status-red); }
+
+/* Job Selection Modal */
+.job-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.job-modal-content {
+    background-color: white;
+    padding: 2rem 3rem;
+    border-radius: 20px;
+    box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+    width: 90%;
+    max-width: 1000px;
+    text-align: center;
+}
+
+.job-modal-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 2rem;
+}
+
+.job-card-container {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.job-card {
+    width: 200px; /* 카드 크기 추가 축소 */
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border-radius: 16px; /* 이미지 자체의 radius와 맞추기 */
+    overflow: hidden; /* 이미지가 radius를 벗어나지 않도록 */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.job-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+}
+
+.job-card img {
+    width: 100%;
+    display: block;
+}
+
+.job-modal-close-button {
+    margin-top: 2rem;
+    background-color: var(--secondary-text-color);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 0.8rem 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.job-modal-close-button:hover {
+    background-color: var(--text-color);
+} 
