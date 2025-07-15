@@ -11,29 +11,6 @@ import useModal from '../hooks/useModal';
 import Modal from '../components/common/Modal';
 import './RoomLobby.css';
 
-const JOBS = [
-    {
-      name: '개발자',
-      image: '/images/jobcard_developer.png',
-      color: '#d4edff'
-    },
-    {
-      name: '디자이너',
-      image: '/images/jobcard_designer.png',
-      color: '#ffe2f5'
-    },
-    {
-      name: '기획자',
-      image: '/images/jobcard_pm.png',
-      color: '#fff9c4'
-    },
-    {
-      name: '마케터',
-      image: '/images/jobcard_marketer.png',
-      color: '#d9f7be'
-    }
-];
-
 const RoomLobby: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
@@ -67,11 +44,6 @@ const RoomLobby: React.FC = () => {
   const [gameStatus, setGameStatus] = useState<'waiting' | 'playing' | 'finished'>('waiting');
   const [chatType, setChatType] = useState<'lobby' | 'game'>('lobby');
   const { modalState, showInfo, showError, hideModal } = useModal();
-
-  // --- 직무 선택 관련 상태 (프론트엔드 전용) ---
-  const [playerJobs, setPlayerJobs] = useState<Record<string, string>>({});
-  const [isJobModalOpen, setJobModalOpen] = useState(false);
-  // --- 여기까지 ---
 
   // 프로필은 최초 1회만
   useEffect(() => {
@@ -495,15 +467,6 @@ const RoomLobby: React.FC = () => {
     }
   };
 
-  // --- 직무 선택 관련 핸들러 (프론트엔드 전용) ---
-  const handleSelectJob = (jobName: string) => {
-    if (profile) {
-      setPlayerJobs(prev => ({ ...prev, [profile.id]: jobName }));
-      setJobModalOpen(false);
-    }
-  };
-  // --- 여기까지 ---
-
   return (
     <div className="lobby-page-container">
       {/* 상단: 방 이름, 나가기 버튼 */}
@@ -539,12 +502,6 @@ const RoomLobby: React.FC = () => {
                     <img src={player.avatar_url || 'https://ssl.pstatic.net/static/pwe/address/img_profile.png'} alt="avatar" className="player-avatar" />
                     <div className="player-name">{player.display_name}</div>
                     
-                    {/* --- 직무 표시 --- */}
-                    <div className="player-job-display">
-                      {playerJobs[player.profile_id] || '미정'}
-                    </div>
-                    {/* --- 여기까지 --- */}
-
                     <div className="player-role">{player.role === 'host' ? '팀장' : '팀원'}</div>
                     
                     {player.role === 'host' ? (
@@ -555,13 +512,6 @@ const RoomLobby: React.FC = () => {
                       <div className="player-status-badge not-ready">⏳ 대기중</div>
                     )}
 
-                    {/* --- 직무 선택 버튼 (본인에게만 보임) --- */}
-                    {player.profile_id === profile?.id && (
-                      <button className="select-job-button" onClick={() => setJobModalOpen(true)}>
-                        직무 선택
-                      </button>
-                    )}
-                    {/* --- 여기까지 --- */}
                   </div>
                 ))}
               </div>
@@ -634,24 +584,6 @@ const RoomLobby: React.FC = () => {
         )}
       </footer>
       
-      {/* --- 직무 선택 모달 --- */}
-      {isJobModalOpen && (
-        <div className="job-modal-overlay">
-          <div className="job-modal-content">
-            <h2 className="job-modal-title">직무 선택</h2>
-            <div className="job-card-container">
-              {JOBS.map(job => (
-                <div key={job.name} className="job-card" onClick={() => handleSelectJob(job.name)}>
-                  <img src={job.image} alt={job.name} />
-                </div>
-              ))}
-            </div>
-            <button className="job-modal-close-button" onClick={() => setJobModalOpen(false)}>닫기</button>
-          </div>
-        </div>
-      )}
-      {/* --- 여기까지 --- */}
-
       {/* Modal */}
       <Modal
         isOpen={modalState.isOpen}
