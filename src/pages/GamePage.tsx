@@ -453,6 +453,79 @@ const GamePage: React.FC = () => {
     }
   };
 
+  // gameStarted가 false일 때 (게임 시작 전) => LLM 실제 게임 UI 표시 (수정)
+  if (!gameStarted) {
+    return (
+      <>
+        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+          {/* 상단: 방 이름, 나가기 버튼 */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderBottom: '1px solid #eee' }}>
+            <h2 style={{ margin: 0 }}>
+              {room.title} - LLM 게임 진행 중
+            </h2>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {isHost && (
+                <button onClick={handleFinishGame} className="leave-button">
+                  🏁 게임 종료
+                </button>
+              )}
+            </div>
+          </div>
+          
+          {/* 메인: 좌측 게임 영역, 우측 채팅 */}
+          <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+            {/* 좌측: LLM 게임 영역 */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: 24, gap: 24, overflowY: 'auto' }}>
+              <GameRoom 
+                roomId={roomId!}
+                token={useAuthStore.getState().accessToken || ''}
+                players={getLlmPlayers()}
+                shouldCreateGame={shouldCreateGame}
+                onGameCreated={() => setShouldCreateGame(false)}
+              />
+            </div>
+            {/* 우측: 채팅 영역 */}
+            <aside className="game-sidebar right" style={{ flex: '0 0 320px', borderLeft: '1px solid #eee' }}>
+              <div className="chat-container">
+                <div className="chat-header">
+                    <h3>채팅</h3>
+                    <div className="other-players-list">
+                        {otherPlayers.map((player: any) => (
+                            <div key={player.profile_id} className="other-player">
+                                <img src={player.avatar_url || 'https://ssl.pstatic.net/static/pwe/address/img_profile.png'} alt={player.display_name} className="other-player-avatar" />
+                                <span className="other-player-name">{player.display_name}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                <div className="chat-box-wrapper">
+                    <ChatBox 
+                        roomId={roomId!} 
+                        socket={socket} 
+                        profile={profile}
+                        chatType="game" 
+                        initialMessages={[]}
+                        onSendGameMessage={sendGameMessage}
+                    />
+                </div>
+              </div>
+            </aside>
+          </div>
+          {/* Modal (기존 로직 그대로 유지) */}
+          <Modal
+            isOpen={modalState.isOpen}
+            onClose={hideModal}
+            title={modalState.title}
+            message={modalState.message}
+            type={modalState.type}
+            showCloseButton={modalState.showCloseButton}
+          />
+        </div>
+      </>
+    );
+  }
+
+  // gameStarted가 true일 때 (게임 시작 후) => 프로토타입 대시보드 UI 표시 (수정)
   return (
     <div className="game-page-container">
       {/* --- Left Sidebar --- */}
@@ -492,32 +565,6 @@ const GamePage: React.FC = () => {
               ))}
             </div>
           </div>
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* 상단: 방 이름, 나가기 버튼 */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderBottom: '1px solid #eee' }}>
-        <h2 style={{ margin: 0 }}>
-          {room.title} - LLM 게임 진행 중
-        </h2>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          {!gameStarted && (
-            <button onClick={handleLeaveGame} style={{ background: '#f44336', color: 'white', border: 'none', borderRadius: 4, padding: '8px 16px', fontWeight: 'bold' }}>
-              게임 나가기
-            </button>
-          )}
-        </div>
-      </div>
-      
-      {/* 메인: 좌측 게임 영역, 우측 채팅 */}
-      <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
-        {/* 좌측: LLM 게임 영역 */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: 24, gap: 24, overflowY: 'auto' }}>
-          <GameRoom 
-            roomId={roomId!}
-            token={useAuthStore.getState().accessToken || ''}
-            players={getLlmPlayers()}
-            shouldCreateGame={shouldCreateGame}
-            onGameCreated={() => setShouldCreateGame(false)}
-          />
         </div>
       </aside>
 
