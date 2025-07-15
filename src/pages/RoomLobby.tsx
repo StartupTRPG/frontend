@@ -9,6 +9,30 @@ import { SocketEventType } from '../types/socket';
 import { UserProfileResponse } from '../services/api';
 import useModal from '../hooks/useModal';
 import Modal from '../components/common/Modal';
+import './RoomLobby.css';
+
+const JOBS = [
+    {
+      name: '개발자',
+      image: '/images/jobcard_developer.png',
+      color: '#d4edff'
+    },
+    {
+      name: '디자이너',
+      image: '/images/jobcard_designer.png',
+      color: '#ffe2f5'
+    },
+    {
+      name: '기획자',
+      image: '/images/jobcard_pm.png',
+      color: '#fff9c4'
+    },
+    {
+      name: '마케터',
+      image: '/images/jobcard_marketer.png',
+      color: '#d9f7be'
+    }
+];
 
 const RoomLobby: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
@@ -43,6 +67,11 @@ const RoomLobby: React.FC = () => {
   const [gameStatus, setGameStatus] = useState<'waiting' | 'playing' | 'finished'>('waiting');
   const [chatType, setChatType] = useState<'lobby' | 'game'>('lobby');
   const { modalState, showInfo, showError, hideModal } = useModal();
+
+  // --- 직무 선택 관련 상태 (프론트엔드 전용) ---
+  const [playerJobs, setPlayerJobs] = useState<Record<string, string>>({});
+  const [isJobModalOpen, setJobModalOpen] = useState(false);
+  // --- 여기까지 ---
 
   // 프로필은 최초 1회만
   useEffect(() => {
@@ -451,49 +480,83 @@ const RoomLobby: React.FC = () => {
     }
   };
 
+  // --- 직무 선택 관련 핸들러 (프론트엔드 전용) ---
+  const handleSelectJob = (jobName: string) => {
+    if (profile) {
+      setPlayerJobs(prev => ({ ...prev, [profile.id]: jobName }));
+      setJobModalOpen(false);
+    }
+  };
+  // --- 여기까지 ---
+
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div className="lobby-page-container">
       {/* 상단: 방 이름, 나가기 버튼 */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderBottom: '1px solid #eee' }}>
-        <h2 style={{ margin: 0 }}>{room.title}</h2>
-        <button onClick={handleLeaveRoom} style={{ background: '#f44336', color: 'white', border: 'none', borderRadius: 4, padding: '8px 16px', fontWeight: 'bold' }}>방 나가기</button>
-      </div>
+      <header className="lobby-header">
+        <h2 className="lobby-title">{room.title}</h2>
+        <button onClick={handleLeaveRoom} className="leave-button">방 나가기</button>
+      </header>
+
       {/* 메인: 좌측 정보/플레이어, 우측 채팅 */}
-      <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+      <main className="lobby-main-content">
         {/* 좌측: 방 정보, 플레이어 목록 */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: 24, gap: 24, overflowY: 'auto' }}>
+        <div className="lobby-left-section">
           {/* 방 정보 */}
-          <div style={{ border: '1px solid #ddd', borderRadius: 8, padding: 16 }}>
-            <div><b>설명:</b> {room.description || '-'}</div>
-            <div><b>인원:</b> {room.current_players} / {room.max_players}</div>
-            <div><b>상태:</b> 
-              {gameStatus === 'waiting' ? '대기 중' : 
-               gameStatus === 'playing' ? '게임 진행 중' : '게임 종료'}
+          <div className="info-card">
+            <h3>프로젝트 정보</h3>
+            <div className="info-grid">
+                <div className="info-item"><b>소개:</b> {room.description || '-'}</div>
+                <div className="info-item"><b>참여인원:</b> {room.current_players} / {room.max_players}</div>
+                <div className="info-item"><b>프로젝트 상태:</b> 
+                {gameStatus === 'waiting' ? '대기 중' : 
+                gameStatus === 'playing' ? '진행 중' : '종료'}
+                </div>
+                <div className="info-item"><b>보안 레벨:</b> {room.visibility === 'public' ? '공개' : '비공개'}</div>
             </div>
-            <div><b>공개:</b> {room.visibility === 'public' ? '공개' : '비공개'}</div>
           </div>
           {/* 플레이어 목록 */}
-          <div style={{ border: '1px solid #ddd', borderRadius: 8, padding: 16 }}>
-            <h3 style={{ marginTop: 0 }}>플레이어 목록</h3>
+          <div className="players-card">
+            <h3>참여 팀원 목록</h3>
             {room.players && room.players.length > 0 ? (
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              <div className="player-grid">
                 {room.players.map((player: any) => (
-                  <li key={player.profile_id} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                    <img src={player.avatar_url || 'https://ssl.pstatic.net/static/pwe/address/img_profile.png'} alt="avatar" style={{ width: 36, height: 36, borderRadius: '50%' }} />
-                    <span style={{ fontWeight: 'bold' }}>{player.display_name}</span>
-                    {player.role === 'host' && <span style={{ color: 'blue' }}>👑</span>}
-                    {readyPlayers.has(player.profile_id) && <span style={{ color: 'green' }}>✅</span>}
-                    <span style={{ color: '#888', fontSize: 13 }}>{player.role === 'host' ? '방장' : player.role === 'player' ? '플레이어' : '관찰자'}</span>
-                  </li>
+                  <div key={player.profile_id} className="player-card">
+                    <img src={player.avatar_url || 'https://ssl.pstatic.net/static/pwe/address/img_profile.png'} alt="avatar" className="player-avatar" />
+                    <div className="player-name">{player.display_name}</div>
+                    
+                    {/* --- 직무 표시 --- */}
+                    <div className="player-job-display">
+                      {playerJobs[player.profile_id] || '미정'}
+                    </div>
+                    {/* --- 여기까지 --- */}
+
+                    <div className="player-role">{player.role === 'host' ? '팀장' : '팀원'}</div>
+                    
+                    {player.role === 'host' ? (
+                       <div className="player-status-badge host">👑 팀장</div>
+                    ) : readyPlayers.has(player.profile_id) ? (
+                      <div className="player-status-badge ready">✅ 준비완료</div>
+                    ) : (
+                      <div className="player-status-badge not-ready">⏳ 대기중</div>
+                    )}
+
+                    {/* --- 직무 선택 버튼 (본인에게만 보임) --- */}
+                    {player.profile_id === profile?.id && (
+                      <button className="select-job-button" onClick={() => setJobModalOpen(true)}>
+                        직무 선택
+                      </button>
+                    )}
+                    {/* --- 여기까지 --- */}
+                  </div>
                 ))}
-              </ul>
+              </div>
             ) : (
-              <div>플레이어 없음</div>
+              <div>참여중인 팀원이 없습니다.</div>
             )}
           </div>
         </div>
         {/* 우측: 채팅창 */}
-        <div style={{ width: 350, borderLeft: '1px solid #eee', display: 'flex', flexDirection: 'column' }}>
+        <div className="lobby-right-section">
           <ChatBox 
             roomId={roomId!} 
             socket={socket} 
@@ -504,85 +567,76 @@ const RoomLobby: React.FC = () => {
             onSendGameMessage={sendGameMessage}
           />
         </div>
-      </div>
+      </main>
+
       {/* 하단: 게임 시작/레디 버튼 */}
-      <div style={{ padding: 16, borderTop: '1px solid #eee', display: 'flex', justifyContent: 'center', background: '#fafbfc' }}>
+      <footer className="lobby-footer">
         {gameStatus === 'waiting' && (
           isHost ? (
             <button
               onClick={handleStartGame}
               disabled={gameStarting || room.current_players < 2 || !allPlayersReady}
-              style={{
-                backgroundColor: gameStarting || room.current_players < 2 || !allPlayersReady ? '#ccc' : '#4CAF50',
-                color: 'white',
-                border: 'none',
-                borderRadius: 6,
-                padding: '12px 32px',
-                fontSize: 18,
-                fontWeight: 'bold',
-                cursor: gameStarting || room.current_players < 2 || !allPlayersReady ? 'not-allowed' : 'pointer',
-                minWidth: 180
-              }}
+              className="action-button start"
             >
-              {gameStarting ? '⏳ 게임 시작 중...' :
+              {gameStarting ? '⏳ 프로젝트 시작 중...' :
                 room.current_players < 2 ? '❌ 최소 2명 필요' :
-                !allPlayersReady ? '⏸️ 모든 플레이어 레디 필요' :
-                '🚀 게임 시작하기'}
+                !allPlayersReady ? '⏸️ 모든 팀원 준비 필요' :
+                '🚀 프로젝트 시작하기'}
             </button>
           ) : (
             <button
               onClick={handleToggleReady}
-              style={{
-                backgroundColor: myReadyState ? '#4CAF50' : '#ff9800',
-                color: 'white',
-                border: 'none',
-                borderRadius: 6,
-                padding: '12px 32px',
-                fontSize: 18,
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                minWidth: 180
-              }}
+              className={`action-button ready ${myReadyState ? 'is-ready' : ''}`}
             >
-              {myReadyState ? '✅ 레디 완료' : '🎯 레디하기'}
+              {myReadyState ? '✅ 준비완료' : '🎯 준비하기'}
             </button>
           )
         )}
 
         {gameStatus === 'playing' && (
-          <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-            <span style={{ fontSize: 18, fontWeight: 'bold', color: '#4CAF50' }}>
-              🎮 게임 진행 중
+          <div className="game-status-text playing">
+            <span>
+              🎮 프로젝트 진행 중
             </span>
             {isHost && (
               <button
                 onClick={handleFinishGame}
-                style={{
-                  backgroundColor: '#f44336',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: 6,
-                  padding: '12px 24px',
-                  fontSize: 16,
-                  fontWeight: 'bold',
-                  cursor: 'pointer'
-                }}
+                className="leave-button"
+                style={{marginLeft: '1rem'}}
               >
-                🏁 게임 종료
+                🏁 프로젝트 종료
               </button>
             )}
           </div>
         )}
 
         {gameStatus === 'finished' && (
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <span style={{ fontSize: 18, fontWeight: 'bold', color: '#ff9800' }}>
-              🏆 게임 종료 - 3초 후 대기실로 돌아갑니다
+          <div className="game-status-text finished">
+            <span>
+              🏆 프로젝트 종료 - 3초 후 대기실로 돌아갑니다
             </span>
           </div>
         )}
-      </div>
+      </footer>
       
+      {/* --- 직무 선택 모달 --- */}
+      {isJobModalOpen && (
+        <div className="job-modal-overlay">
+          <div className="job-modal-content">
+            <h2 className="job-modal-title">직무 선택</h2>
+            <div className="job-card-container">
+              {JOBS.map(job => (
+                <div key={job.name} className="job-card" onClick={() => handleSelectJob(job.name)}>
+                  <img src={job.image} alt={job.name} />
+                </div>
+              ))}
+            </div>
+            <button className="job-modal-close-button" onClick={() => setJobModalOpen(false)}>닫기</button>
+          </div>
+        </div>
+      )}
+      {/* --- 여기까지 --- */}
+
       {/* Modal */}
       <Modal
         isOpen={modalState.isOpen}
