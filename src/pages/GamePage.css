@@ -1,0 +1,565 @@
+@import url('../assets/fonts/fonts.css');
+
+:root {
+  --primary-color: #7aa5ff;
+  --primary-glow-color: rgba(122, 165, 255, 0.7);
+  --background-color: #f4f7fc;
+  --card-bg-color: linear-gradient(145deg, #ffffff, #f7faff);
+  --text-color: #343a40;
+  --secondary-text-color: #6c757d;
+  --shadow-color: rgba(122, 165, 255, 0.1);
+  --light-shadow-color: rgba(122, 165, 255, 0.05);
+}
+
+.game-page-container {
+  height: 100vh;
+  display: grid;
+  grid-template-columns: 300px 1fr 380px; /* 좌측 | 중앙 | 우측 */
+  gap: 2rem;
+  padding: 2rem;
+  background-color: var(--background-color);
+  font-family: 'Lekoche', 'Gmarket Sans', '맑은 고딕', sans-serif;
+  color: var(--text-color);
+  overflow: hidden; /* 페이지 전체 스크롤 방지 */
+}
+
+.game-sidebar, .game-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  height: 100%; /* 부모 높이 채우기 */
+  max-height: calc(100vh - 4rem); /* 패딩값 제외 */
+}
+
+/* --- Base Card Style --- */
+.game-card {
+  background: var(--card-bg-color);
+  border-radius: 24px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 25px var(--shadow-color), 0 1px 3px var(--light-shadow-color);
+  border: 1px solid white;
+  transition: all 0.3s ease;
+}
+
+/* --- Left Sidebar --- */
+.game-sidebar.left {
+  overflow-y: hidden; /* 스크롤은 자식요소에서 */
+}
+
+.sidebar-scroll-content {
+  overflow-y: auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding-right: 1rem; /* 스크롤바 공간 */
+  margin-right: -1rem; /* 부모 영역 침범 방지 */
+}
+
+.time-card {
+  text-align: center;
+  padding: 1rem;
+}
+.time-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+.time-icon {
+  font-size: 2.5rem;
+  color: #ffc107;
+}
+.time-text {
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-color);
+}
+.day-text {
+  margin-top: 0.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--secondary-text-color);
+}
+
+.progress-card h3, .stats-card h3 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  font-size: 1.3rem;
+  color: var(--secondary-text-color);
+  font-weight: 500;
+}
+.progress-list, .sub-stats-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+.progress-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+.progress-bar-bg {
+  height: 18px;
+  background-color: #e9ecef;
+  border-radius: 9px;
+  overflow: hidden;
+}
+.progress-bar-fg {
+  height: 100%;
+  background: linear-gradient(90deg, #7aa5ff, #a8c5ff);
+  border-radius: 9px;
+  transition: width 0.8s ease-in-out;
+  animation: fill-bar 1s ease-out;
+}
+
+@keyframes fill-bar {
+  from { width: 0% !important; }
+}
+
+.stats-card {
+  align-items: center;
+}
+.stats-chart-container {
+  width: 100%;
+  max-width: 250px; /* 라벨 표시 위해 약간 키움 */
+  margin-top: -1rem; /* 제목과 간격 조정 */
+  margin-bottom: 1rem;
+}
+
+/* -- New Chart Styles -- */
+.stats-grid-group {
+  opacity: 0.5;
+}
+.stats-pentagon-grid {
+  fill: none;
+  stroke: #e0e5f0;
+  stroke-width: 1;
+}
+.stats-pentagon-data {
+  fill: rgba(122, 165, 255, 0.35);
+  stroke: #7aa5ff;
+  stroke-width: 2.5;
+  transition: all 0.5s ease;
+}
+.stats-labels-group {
+  font-family: 'Gmarket Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  fill: var(--secondary-text-color);
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+/* --- Workspace (Center) --- */
+.game-workspace {
+  background: var(--card-bg-color);
+  border-radius: 24px;
+  padding: 2rem;
+  box-shadow: 0 8px 25px var(--shadow-color), 0 1px 3px var(--light-shadow-color);
+  border: 1px solid white;
+}
+.workspace-header {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f1f3f5;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.workspace-header h2 {
+  margin: 0;
+  font-size: 1.8rem;
+  color: var(--secondary-text-color);
+  font-weight: 500;
+}
+.leave-button {
+  background-color: #ff7875;
+  color: white;
+  border: none;
+  border-radius: 15px;
+  padding: 0.6rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.leave-button:hover {
+  background-color: #f55a55;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(255, 120, 117, 0.3);
+}
+
+.workspace-content {
+  overflow-y: auto; /* 내용이 많아지면 여기만 스크롤 */
+  flex-grow: 1;
+  padding-right: 1rem; /* for scrollbar */
+}
+
+.workspace-content-image {
+  width: 100%;
+  border-radius: 15px;
+  margin-top: 1rem;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+}
+.workspace-prompt {
+  margin-top: 1.5rem;
+  font-size: 1.1rem;
+  color: var(--text-color);
+  font-weight: 500;
+}
+.agenda-list {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.agenda-card {
+  background-color: #f8f9fa;
+  border: 1px solid #f1f3f5;
+  border-radius: 15px;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+.agenda-card:hover {
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.07);
+  border-color: var(--primary-color);
+}
+.agenda-card h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+  color: var(--primary-color);
+}
+.agenda-card p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--secondary-text-color);
+}
+
+/* ======================================================= */
+/* --- 디자인 프로토타입: 워크스페이스 스타일 --- */
+/* ======================================================= */
+
+/* --- Agenda State --- */
+.workspace-agenda {
+  animation: fade-in 0.5s ease-out;
+}
+
+.agenda-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.agenda-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin: 0;
+}
+
+.agenda-timer {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  padding: 0.5rem 1rem;
+  background-color: #e9f1ff;
+  border-radius: 12px;
+}
+
+.agenda-options-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.option-card {
+  background: var(--card-bg-color);
+  border: 1px solid #e9ecef;
+  border-radius: 18px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.option-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 25px rgba(122, 165, 255, 0.15);
+  border-color: var(--primary-color);
+}
+
+.option-card h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.15rem;
+  color: var(--primary-color);
+}
+
+.option-card p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--secondary-text-color);
+  line-height: 1.5;
+}
+
+.option-card.selected {
+  border-color: var(--primary-color);
+  transform: translateY(-8px) scale(1.03);
+  box-shadow: 0 12px 30px var(--primary-glow-color);
+}
+
+.option-card.not-selected {
+  opacity: 0.5;
+  filter: grayscale(80%);
+  transform: scale(0.95);
+  cursor: default;
+}
+
+.selected-badge {
+  position: absolute;
+  top: -15px;
+  right: -10px;
+  background: linear-gradient(135deg, #66bb6a, #43a047);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 4px 10px rgba(102, 187, 106, 0.5);
+  transform: rotate(10deg);
+}
+
+.next-step-button {
+  display: block;
+  width: 50%;
+  margin: 2rem auto 0;
+  padding: 1rem 2rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: white;
+  background: var(--primary-color);
+  border: none;
+  border-radius: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px var(--primary-glow-color);
+}
+
+.next-step-button:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px var(--primary-glow-color);
+}
+
+/* --- Work & Overtime State --- */
+.workspace-work {
+  animation: fade-in 0.5s ease-out;
+}
+
+.work-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin: 0 0 0.5rem 0;
+  text-align: center;
+}
+
+.work-options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.option-card.work-option {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.work-option-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.work-option-header h4 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: var(--primary-color);
+}
+
+.work-option-chance {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: white;
+  background: var(--primary-color);
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  min-width: 60px;
+  text-align: center;
+}
+
+.work-option-desc {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--secondary-text-color);
+}
+
+.work-option-details {
+  border-top: 1px solid #f1f3f5;
+  padding-top: 1rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.9rem;
+}
+
+.detail-item.reward { color: #2f9e44; }
+.detail-item.cost { color: #e03131; }
+
+/* --- Work Result State --- */
+.workspace-work-result {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  animation: fade-in 0.5s ease-out;
+}
+
+.result-outcome-text {
+  font-size: 6rem;
+  font-weight: 900;
+  color: white;
+  text-shadow: 0 5px 25px rgba(0, 0, 0, 0.3);
+  animation: pop-in 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.workspace-work-result.success .result-outcome-text {
+  background: -webkit-linear-gradient(45deg, #66bb6a, #43a047);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.workspace-work-result.failure .result-outcome-text {
+  background: -webkit-linear-gradient(45deg, #f76e6e, #e03131);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@keyframes pop-in {
+  from { transform: scale(0.5) translateY(50px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.result-details-card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--card-bg-color);
+  border-radius: 18px;
+  padding: 1.5rem;
+  margin-top: 2rem;
+  text-align: center;
+  border: 1px solid #e9ecef;
+  animation: slide-up 0.6s 0.2s ease-out backwards;
+}
+
+@keyframes slide-up {
+  from { transform: translateY(50px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.result-details-card h4 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: var(--text-color);
+}
+.result-message {
+  font-size: 1rem;
+  color: var(--secondary-text-color);
+  margin: 0.5rem 0 1.5rem 0;
+}
+
+
+/* --- 임시 상태 전환 버튼 (디자인 확인용) --- */
+.temp-state-changer {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 0.5rem;
+  border-radius: 12px;
+}
+.temp-state-changer button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+
+/* --- Right Sidebar (Chat) --- */
+.chat-container {
+    background: var(--card-bg-color);
+    border-radius: 24px;
+    box-shadow: 0 8px 25px var(--shadow-color), 0 1px 3px var(--light-shadow-color);
+    border: 1px solid white;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+.chat-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #f1f3f5;
+}
+.chat-header h3 {
+    margin: 0;
+    font-size: 1.3rem;
+    color: var(--secondary-text-color);
+    font-weight: 500;
+}
+.other-players-list {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-top: 1rem;
+    text-align: center;
+}
+.other-player {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+.other-player-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: #e9ecef;
+    object-fit: cover;
+    border: 3px solid white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.other-player-name {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+.chat-box-wrapper {
+    flex: 1;
+    min-height: 0;
+    padding: 0 0.5rem 0.5rem 0.5rem; /* 채팅창 여백 */
+}
+.chat-box-wrapper > div { /* ChatBox component root */
+    height: 100%;
+    border: none;
+    width: 100%;
+    background-color: transparent;
+} 
