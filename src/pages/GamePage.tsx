@@ -126,6 +126,21 @@ const GamePage: React.FC = () => {
   const [selectedOption, setSelectedOption] = useState<string | null>(null); // 선택한 옵션 ID
   const [isResultSuccess, setIsResultSuccess] = useState(false); // 업무 결과 (성공/실패)
   const [overtimeView, setOvertimeView] = useState<'overtime' | 'rest'>('rest'); // 야근/휴식 뷰 전환용
+
+  // 게임 진행 로그 함수
+  const logGameProgress = (stage: string, data?: Record<string, any>) => {
+    console.log(`🎮 [GAME PROGRESS] ${stage}`, {
+      roomId,
+      profileId: profile?.id,
+      profileName: profile?.display_name,
+      workspaceState,
+      agendaIndex,
+      workTaskIndex,
+      selectedOption,
+      timestamp: new Date().toISOString(),
+      ...data
+    });
+  };
   
   // --- 투표 관련 상태 추가 ---
   const [otherPlayerVotes, setOtherPlayerVotes] = useState<Record<string, string>>({}); // player_id -> selected_option_id
@@ -303,6 +318,7 @@ const GamePage: React.FC = () => {
           getGameProgress(roomId);
         }
         
+        logGameProgress('게임 시작', { story: data.story });
         console.log('게임 시작됨:', data);
       }
     };
@@ -388,6 +404,10 @@ const GamePage: React.FC = () => {
           task_list: data.task_list
         });
         setWorkLoading(false); // 로딩 완료
+        logGameProgress('업무 데이터 수신', { 
+          taskCount: Object.keys(data.task_list).length,
+          playerTasks: profile?.id ? data.task_list[profile.id]?.length || 0 : 0
+        });
         console.log('Task 생성 완료:', data);
       } else {
       }
@@ -401,6 +421,10 @@ const GamePage: React.FC = () => {
           task_list: data.task_list
         });
         setOvertimeLoading(false); // 로딩 완료
+        logGameProgress('야근/휴식 데이터 수신', { 
+          taskCount: Object.keys(data.task_list).length,
+          playerTasks: profile?.id ? data.task_list[profile.id]?.length || 0 : 0
+        });
         console.log('Overtime 생성 완료:', data);
       }
     };
@@ -467,6 +491,10 @@ const GamePage: React.FC = () => {
             agenda_list: data.agenda_list
           });
           setAgendaLoading(false); // 로딩 완료
+          logGameProgress('아젠다 데이터 수신', { 
+            agendaCount: data.agenda_list.length,
+            phase: data.phase
+          });
         }
         
         // context 데이터가 있으면 처리
@@ -476,12 +504,19 @@ const GamePage: React.FC = () => {
             player_context_list: data.player_context_list
           });
           setContextLoading(false);
+          logGameProgress('컨텍스트 데이터 수신', { 
+            playerCount: data.player_context_list.length,
+            phase: data.phase
+          });
         }
         
         // story 데이터가 있으면 처리
         if (data.story) {
           setPrologueData({ story: data.story });
           setPrologueLoading(false);
+          logGameProgress('스토리 데이터 수신', { 
+            phase: data.phase
+          });
         }
 
         // overtime 데이터가 있으면 처리
@@ -490,6 +525,10 @@ const GamePage: React.FC = () => {
             task_list: data.overtime_task_list
           });
           setOvertimeLoading(false);
+          logGameProgress('야근/휴식 데이터 업데이트', { 
+            taskCount: Object.keys(data.overtime_task_list).length,
+            phase: data.phase
+          });
           console.log('Overtime 데이터 업데이트:', data.overtime_task_list);
         }
       }
@@ -566,6 +605,14 @@ const GamePage: React.FC = () => {
     
     // 선택한 옵션 저장
     setSelectedOption(optionId);
+    
+    logGameProgress('아젠다 선택', { 
+      agendaId: currentAgenda.agenda_id,
+      agendaName: currentAgenda.agenda_name,
+      selectedOptionId: optionId,
+      agendaIndex: agendaIndex + 1,
+      totalAgendas: agendaData.agenda_list.length
+    });
     
     // 백엔드로 투표 결과 전송 (broadcast 포함)
     voteAgenda(roomId, currentAgenda.agenda_id, optionId);
@@ -710,6 +757,19 @@ const GamePage: React.FC = () => {
     <>
       {/* --- 상태 4: Game Result Overlay (최종 결과) --- */}
       {workspaceState === 'game_result' && (() => {
+        if (!gameResultData) {
+          return (
+            <div style={{ 
+              textAlign: 'center',
+              padding: '40px',
+              fontSize: '18px',
+              color: '#666'
+            }}>
+              게임 결과를 불러오는 중...
+            </div>
+          );
+        }
+        
         const { game_result, player_rankings } = gameResultData;
         const sortedRankings = [...player_rankings].sort((a, b) => a.rank - b.rank);
         const getMedal = (rank: number) => {
@@ -1405,12 +1465,19 @@ const GamePage: React.FC = () => {
                         setAgendaIndex(agendaIndex + 1);
                         setWorkspaceState('agenda');
                         setSelectedOption(null);
+                        logGameProgress('다음 아젠다로 이동', { 
+                          nextAgendaIndex: agendaIndex + 2,
+                          totalAgendas: agendaData.agenda_list.length
+                        });
                         console.log(`다음 아젠다로 이동: ${agendaIndex + 2}/${agendaData.agenda_list.length}`);
                       } else {
                         // 모든 안건이 끝나면 work 상태로 전환하고 task 생성 요청
                         setWorkspaceState('work');
                         setSelectedOption(null);
                         setWorkLoading(true); // 로딩 시작
+                        logGameProgress('업무 단계 시작', { 
+                          totalAgendas: agendaData.agenda_list.length
+                        });
                         console.log('모든 아젠다 완료, 업무 단계로 이동');
                         
                         // task 생성 요청
@@ -1520,11 +1587,24 @@ const GamePage: React.FC = () => {
                                       // 선택한 옵션 저장
                                       setSelectedOption(option.task_option_id);
                                       
+                                      logGameProgress('업무 선택', {
+                                        taskId: task.task_id,
+                                        taskName: task.task_name,
+                                        selectedOptionId: option.task_option_id,
+                                        selectedOptionText: option.task_option_text,
+                                        currentTaskIndex: workTaskIndex + 1,
+                                        totalTasks: playerTasks.length
+                                      });
+                                      
                                       // 현재 업무 완료 처리
                                       if (workTaskIndex < playerTasks.length - 1) {
                                         // 다음 업무로 이동
                                         setWorkTaskIndex(workTaskIndex + 1);
                                         setSelectedOption(null); // 선택 초기화
+                                        logGameProgress('다음 업무로 이동', {
+                                          nextTaskIndex: workTaskIndex + 2,
+                                          totalTasks: playerTasks.length
+                                        });
                                       } else {
                                         // 모든 업무 완료 시 overtime 생성 요청
                                         if (socket && roomId) {
@@ -1533,6 +1613,10 @@ const GamePage: React.FC = () => {
                                         }
                                         setWorkspaceState('overtime');
                                         setSelectedOption(null);
+                                        
+                                        logGameProgress('야근/휴식 단계 시작', {
+                                          totalTasks: playerTasks.length
+                                        });
                                         
                                         // 이미 overtime 데이터가 있으면 로딩 완료
                                         if (overtimeData && overtimeData.task_list) {
@@ -1643,6 +1727,14 @@ const GamePage: React.FC = () => {
                               onClick={() => {
                                 // 선택한 옵션 저장
                                 setSelectedOption(option.overtime_task_option_id);
+                                
+                                logGameProgress('야근/휴식 선택', {
+                                  taskId: task.overtime_task_id,
+                                  taskName: task.overtime_task_name,
+                                  taskType: task.overtime_task_type,
+                                  selectedOptionId: option.overtime_task_option_id,
+                                  selectedOptionText: option.overtime_task_option_text
+                                });
                                 
                                 // 다음 단계로 이동 (임시로 게임 결과로)
                                 setWorkspaceState('game_result');
