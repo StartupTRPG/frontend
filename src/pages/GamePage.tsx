@@ -110,7 +110,8 @@ const GamePage: React.FC = () => {
     voteAgenda, // 추가
     createTask, // 추가
     createOvertime, // 추가
-    getGameProgress // 추가
+    getGameProgress, // 추가
+    calculateResult // 추가
   } = useSocket({
     token: useAuthStore.getState().accessToken || '',
   });
@@ -429,6 +430,23 @@ const GamePage: React.FC = () => {
       }
     };
 
+    // 게임 결과 수신 이벤트 핸들러 추가
+    const handleGameResultCreated = (data: any) => {
+      if (data.room_id === roomId) {
+        // 게임 결과 데이터 설정
+        setGameResultData({
+          game_result: data.game_result,
+          player_rankings: data.player_rankings
+        });
+        setResultLoading(false); // 로딩 완료
+        logGameProgress('게임 결과 수신', { 
+          success: data.game_result?.success,
+          playerCount: data.player_rankings?.length || 0
+        });
+        console.log('게임 결과 생성 완료:', data);
+      }
+    };
+
     // 아젠다 투표 broadcast 이벤트 핸들러 추가
     const handleAgendaVoteBroadcast = (data: AgendaVoteBroadcastResponse) => {
       if (data.room_id === roomId) {
@@ -531,6 +549,20 @@ const GamePage: React.FC = () => {
           });
           console.log('Overtime 데이터 업데이트:', data.overtime_task_list);
         }
+
+        // 게임 결과 데이터가 있으면 처리
+        if (data.game_result && data.player_rankings) {
+          setGameResultData({
+            game_result: data.game_result,
+            player_rankings: data.player_rankings
+          });
+          setResultLoading(false);
+          logGameProgress('게임 결과 데이터 업데이트', { 
+            success: data.game_result?.success,
+            playerCount: data.player_rankings?.length || 0,
+            phase: data.phase
+          });
+        }
       }
     };
 
@@ -544,6 +576,7 @@ const GamePage: React.FC = () => {
     socket.on(SocketEventType.AGENDA_VOTE_COMPLETED, handleAgendaVoteCompleted); // 추가
     socket.on(SocketEventType.FINISH_GAME, handleGameFinish);
     socket.on(SocketEventType.GAME_PROGRESS_UPDATED, handleGameProgressUpdated); // 추가
+    socket.on('game_result_created', handleGameResultCreated); // 추가
     
     return () => {  
       socket.off(SocketEventType.START_GAME, handleGameStart);
@@ -556,6 +589,7 @@ const GamePage: React.FC = () => {
       socket.off(SocketEventType.AGENDA_VOTE_COMPLETED, handleAgendaVoteCompleted); // 추가
       socket.off(SocketEventType.FINISH_GAME, handleGameFinish);
       socket.off(SocketEventType.GAME_PROGRESS_UPDATED, handleGameProgressUpdated); // 추가
+      socket.off('game_result_created', handleGameResultCreated); // 추가
     };
   }, [socket, roomId, navigate, getRoom]);
 
@@ -757,6 +791,30 @@ const GamePage: React.FC = () => {
     <>
       {/* --- 상태 4: Game Result Overlay (최종 결과) --- */}
       {workspaceState === 'game_result' && (() => {
+        if (resultLoading) {
+          return (
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              padding: '40px',
+              fontSize: '18px',
+              color: '#666'
+            }}>
+              <div style={{ 
+                width: '24px', 
+                height: '24px', 
+                border: '3px solid #f3f3f3', 
+                borderTop: '3px solid #28a745', 
+                borderRadius: '50%', 
+                animation: 'spin 1s linear infinite',
+                marginRight: '15px'
+              }}></div>
+              게임 결과를 계산하는 중...
+            </div>
+          );
+        }
+        
         if (!gameResultData) {
           return (
             <div style={{ 
@@ -807,8 +865,15 @@ const GamePage: React.FC = () => {
                   </div>
                 ))}
               </div>
-              {/* --- (임시) 상태 전환 버튼 --- */}
-              <button className="close-result-button" onClick={() => setWorkspaceState('agenda')}>
+              {/* --- 게임 종료 버튼 --- */}
+              <button className="close-result-button" onClick={() => {
+                // 게임 종료 처리
+                if (socket && roomId) {
+                  finishGame(roomId);
+                }
+                // RoomLobby로 이동
+                navigate(`/room/${roomId}`);
+              }}>
                 돌아가기
               </button>
             </div>
@@ -1021,7 +1086,7 @@ const GamePage: React.FC = () => {
         {/* --- Workspace (Center) --- */}
         <main className="game-workspace">
           <div className="workspace-header">
-            <h2>워크스페이스</h2>
+            <h2>{workspaceState === 'game_result' ? '게임이 종료되었습니다' : '워크스페이스'}</h2>
             {isHost && (
               <button onClick={handleFinishGame} className="leave-button">
                 🏁 프로젝트 종료
@@ -1499,7 +1564,7 @@ const GamePage: React.FC = () => {
                       boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                     }}
                   >
-                    {nextAgendaExists ? `다음 안건으로 (${agendaIndex + 2}/${agendaData.agenda_list.length})` : '업무 시작하기'}
+                    {nextAgendaExists ? `다음 안건으로 (${agendaIndex + 1}/${agendaData.agenda_list.length})` : '업무 시작하기'}
                   </button>
                 </div>
               );
@@ -1736,7 +1801,11 @@ const GamePage: React.FC = () => {
                                   selectedOptionText: option.overtime_task_option_text
                                 });
                                 
-                                // 다음 단계로 이동 (임시로 게임 결과로)
+                                // 게임 결과 생성 요청
+                                if (socket && roomId) {
+                                  calculateResult(roomId);
+                                  setResultLoading(true);
+                                }
                                 setWorkspaceState('game_result');
                               }}
                             >
