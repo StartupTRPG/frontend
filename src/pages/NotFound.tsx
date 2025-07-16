@@ -23,7 +23,7 @@ const NotFound: React.FC = () => {
   }, [navigate]);
 
   const handleGoHome = () => {
-    navigate('/home');
+    navigate('/');
   };
 
   const handleGoBack = () => {

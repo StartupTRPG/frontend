@@ -464,7 +464,7 @@ export const useSocket = (options: UseSocketOptions) => {
     globalSocket.emit(SocketEventType.CREATE_AGENDA, request);
   }, []);
 
-  const voteAgenda = useCallback((roomId: string, agendaId: string, selectedOptionId: string) => {
+  const voteAgenda = useCallback((roomId: string, agendaId: string, selectedOptionId: string, playerName?: string) => {
     if (!globalSocket?.connected) {
       return;
     }
@@ -472,10 +472,51 @@ export const useSocket = (options: UseSocketOptions) => {
     const request: VoteAgendaRequest = {
       room_id: roomId,
       agenda_id: agendaId,
-      selected_option_id: selectedOptionId
+      selected_option_id: selectedOptionId,
+      player_name: playerName
     };
     
     globalSocket.emit(SocketEventType.VOTE_AGENDA, request);
+  }, []);
+
+  const navigateAgenda = useCallback((roomId: string, action: 'next' | 'finish') => {
+    if (!globalSocket?.connected) {
+      return;
+    }
+    
+    const request = {
+      room_id: roomId,
+      action: action
+    };
+    
+    globalSocket.emit(SocketEventType.AGENDA_NAVIGATE, request);
+  }, []);
+
+  const completeTask = useCallback((roomId: string, playerName?: string, taskId?: string) => {
+    if (!globalSocket?.connected) {
+      return;
+    }
+    
+    const request = {
+      room_id: roomId,
+      player_name: playerName,
+      task_id: taskId
+    };
+    
+    console.log('useSocket completeTask 호출:', request);
+    globalSocket.emit(SocketEventType.TASK_COMPLETED, request);
+  }, []);
+
+  const navigateTask = useCallback((roomId: string) => {
+    if (!globalSocket?.connected) {
+      return;
+    }
+    
+    const request = {
+      room_id: roomId
+    };
+    
+    globalSocket.emit(SocketEventType.TASK_NAVIGATE, request);
   }, []);
 
   const createTask = useCallback((roomId: string) => {
@@ -588,6 +629,9 @@ export const useSocket = (options: UseSocketOptions) => {
     createContext,
     createAgenda,
     voteAgenda, // 추가
+    navigateAgenda, // 추가
+    completeTask, // 추가
+    navigateTask, // 추가
     createTask,
     createOvertime,
     updateContext,

@@ -30,9 +30,14 @@ export enum SocketEventType {
   CREATE_GAME = "create_game",
   CREATE_CONTEXT = "create_context",
   CREATE_AGENDA = "create_agenda",
+  AGENDA_LOADING_STARTED = "agenda_loading_started", // 추가
   VOTE_AGENDA = "vote_agenda", // 추가
   AGENDA_VOTE_BROADCAST = "agenda_vote_broadcast", // 추가
   AGENDA_VOTE_COMPLETED = "agenda_vote_completed", // 추가
+  AGENDA_NAVIGATE = "agenda_navigate", // 추가
+  TASK_COMPLETED = "task_completed", // 추가
+  TASK_COMPLETED_BROADCAST = "task_completed_broadcast", // 추가
+  TASK_NAVIGATE = "task_navigate", // 추가
   CREATE_TASK = "create_task",
   CREATE_OVERTIME = "create_overtime",
   UPDATE_CONTEXT = "update_context",
@@ -110,6 +115,7 @@ export interface VoteAgendaRequest {
   room_id: string;
   agenda_id: string;
   selected_option_id: string;
+  player_name?: string;
 }
 
 export interface VoteAgendaResponse {

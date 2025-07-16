@@ -159,7 +159,7 @@ const RoomLobby: React.FC = () => {
       // 방이 삭제된 경우 홈으로 이동
       if (error.message === 'Room has been deleted') {
         showInfo('방이 삭제되었습니다.', '방 삭제');
-        navigate('/home');
+        navigate('/');
         return;
       }
       
@@ -246,7 +246,7 @@ const RoomLobby: React.FC = () => {
         }
         
         showInfo('방이 삭제되었습니다.', '방 삭제');
-        navigate('/home');
+        navigate('/');
       }
     };
     socket.on(SocketEventType.ROOM_DELETED, handleRoomDeleted);
@@ -380,8 +380,6 @@ const RoomLobby: React.FC = () => {
           setReadyPlayers(new Set());
           setMyReadyState(false);
         }, 3000);
-        
-        showInfo(`${data.host_display_name}님이 게임을 종료했습니다.`, '게임 종료');
       }
     };
 
@@ -407,7 +405,7 @@ const RoomLobby: React.FC = () => {
       leavingRoomRef.current = true; // 방 나가기 중임을 표시
       leaveRoom();
     }
-    navigate('/home'); 
+    navigate('/'); 
   };
   
   const handleToggleReady = () => {

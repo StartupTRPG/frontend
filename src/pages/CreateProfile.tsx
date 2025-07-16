@@ -74,7 +74,7 @@ const CreateProfile: React.FC = () => {
           avatar_url: DEFAULT_AVATAR_URL,
         });
         showSuccess('프로필이 성공적으로 생성되었습니다!', '생성 완료');
-        navigate('/home');
+        navigate('/');
       }
     } catch (error) {
       console.error('프로필 처리 실패:', error);
@@ -182,7 +182,7 @@ const CreateProfile: React.FC = () => {
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
             <button
               type="button"
-              onClick={() => navigate('/home')}
+              onClick={() => navigate('/')}
               style={{
                 padding: '12px 24px',
                 backgroundColor: '#6c757d',
@@ -270,7 +270,7 @@ const CreateProfile: React.FC = () => {
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
             <button
               type="button"
-              onClick={isEditMode ? handleCancelEdit : () => navigate('/home')}
+              onClick={isEditMode ? handleCancelEdit : () => navigate('/')}
               style={{
                 padding: '12px 24px',
                 backgroundColor: '#6c757d',

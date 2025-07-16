@@ -108,6 +108,9 @@ const GamePage: React.FC = () => {
     finishGame,
     sendGameMessage,
     voteAgenda, // 추가
+    navigateAgenda, // 추가
+    completeTask, // 추가
+    navigateTask, // 추가
     createTask, // 추가
     createOvertime, // 추가
     updateContext, // 추가
@@ -121,6 +124,7 @@ const GamePage: React.FC = () => {
   // 방 입장 시도 상태 추적
   const joinAttemptedRef = useRef(false);
   const joinTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const roomRef = useRef<any>(null); // room 상태를 ref로 추적
 
   // --- 게임 상태 관리 ---
   const [workspaceState, setWorkspaceState] = useState<'prologue' | 'context' | 'agenda' | 'work' | 'overtime' | 'explanation' | 'agenda_result' | 'work_result' | 'game_result'>('prologue');
@@ -161,6 +165,12 @@ const GamePage: React.FC = () => {
   const [voteResults, setVoteResults] = useState<any>(null);
   const [allVotesCompleted, setAllVotesCompleted] = useState(false);
   const [votingPlayers, setVotingPlayers] = useState<Set<string>>(new Set()); // 투표 중인 플레이어들
+  const [currentAgendaId, setCurrentAgendaId] = useState<string | null>(null); // 현재 진행 중인 agenda ID
+
+  // --- 태스크 완료 관련 상태 추가 ---
+  const [completedTaskPlayers, setCompletedTaskPlayers] = useState<Record<string, Set<string>>>({}); // player_id -> set of completed task_ids
+  const [allMyTasksCompleted, setAllMyTasksCompleted] = useState(false); // 내 모든 태스크 완료 여부
+  const [allPlayersCompleted, setAllPlayersCompleted] = useState(false); // 모든 플레이어 완료 여부 (호스트 버튼용)
 
   // --- 게임 데이터 상태 ---
   const [gameData, setGameData] = useState<any>(null);
@@ -173,6 +183,11 @@ const GamePage: React.FC = () => {
   const [agendaLoading, setAgendaLoading] = useState(false);
   
   const [workData, setWorkData] = useState<any>(null);
+  
+  // --- 중복 호출 방지 플래그 ---
+  const [isContextUpdating, setIsContextUpdating] = useState(false);
+  const [isResultCalculating, setIsResultCalculating] = useState(false);
+  const [isTaskCreating, setIsTaskCreating] = useState(false);
   const [workLoading, setWorkLoading] = useState(false);
   
   const [overtimeData, setOvertimeData] = useState<any>(null);
@@ -220,6 +235,7 @@ const GamePage: React.FC = () => {
     if (!roomId) return;
     getRoom(roomId).then(res => {
       setRoom(res.data);
+      roomRef.current = res.data; // ref도 업데이트
       
       // 방 상태에 따라 게임 시작 상태 설정
       if (res.data.status === 'playing') {
@@ -269,7 +285,7 @@ const GamePage: React.FC = () => {
       // 방이 삭제된 경우 홈으로 이동
       if (error.message === 'Room has been deleted') {
         showInfo('방이 삭제되었습니다.', '방 삭제');
-        navigate('/home');
+        navigate('/');
         return;
       }
       
@@ -308,6 +324,48 @@ const GamePage: React.FC = () => {
       }
     };
   }, []);
+
+  // 현재 아젠다 ID 자동 설정
+  useEffect(() => {
+    if (agendaData?.agenda_list && agendaData.agenda_list[agendaIndex]) {
+      setCurrentAgendaId(agendaData.agenda_list[agendaIndex].id);
+    }
+  }, [agendaData, agendaIndex]);
+
+  // 모든 플레이어 태스크 완료 여부 계산
+  useEffect(() => {
+    if (!room || !workData?.task_list) return;
+    
+    const allCompleted = room.players?.every((player: any) => {
+      const playerCompletedTasks = completedTaskPlayers[player.profile_id] || new Set();
+      const playerTasks = workData.task_list[player.profile_id] || [];
+      const hasCompleted = playerCompletedTasks.size >= playerTasks.length;
+      
+      // 디버깅용 로그
+      console.log(`완료 여부 체크 - ${player.display_name}:`, {
+        playerId: player.profile_id,
+        completedTasks: Array.from(playerCompletedTasks),
+        totalTasks: playerTasks.length,
+        hasCompleted
+      });
+      
+      return hasCompleted;
+    }) || false;
+    
+    setAllPlayersCompleted(allCompleted);
+    
+    // 전체 상태 로그
+    console.log('모든 플레이어 완료 상태 업데이트:', {
+      allCompleted,
+      totalPlayers: room?.players?.length || 0,
+      completedTaskPlayers: Object.fromEntries(
+        Object.entries(completedTaskPlayers).map(([playerId, tasks]) => [
+          playerId, 
+          Array.from(tasks)
+        ])
+      )
+    });
+  }, [completedTaskPlayers, room, workData]);
 
   // 게임에서는 채팅 히스토리가 필요 없음
   // useEffect(() => {
@@ -406,6 +464,18 @@ const GamePage: React.FC = () => {
       }
     };
 
+    // 아젠다 로딩 시작 이벤트 핸들러 추가
+    const handleAgendaLoadingStarted = (data: any) => {
+      if (data.room_id === roomId) {
+        // 모든 플레이어가 동시에 로딩 화면으로 이동
+        setAgendaLoading(true);
+        setWorkspaceState('agenda');
+        logGameProgress('아젠다 로딩 시작', { 
+          timestamp: data.timestamp
+        });
+      }
+    };
+
     const handleAgendaCreated = (data: any) => {
       if (data.room_id === roomId) {
         // 아젠다 데이터 설정
@@ -419,7 +489,9 @@ const GamePage: React.FC = () => {
         setVoteResults(null);
         setAllVotesCompleted(false);
         setVotingPlayers(new Set());
-        // workspaceState는 이미 'agenda'로 설정되어 있으므로 변경하지 않음
+        logGameProgress('아젠다 생성 완료', { 
+          agendaCount: data.agenda_list?.length || 0
+        });
       } else {
       }
     };
@@ -432,7 +504,13 @@ const GamePage: React.FC = () => {
           task_list: data.task_list
         });
         setWorkLoading(false); // 로딩 완료
-        logGameProgress('업무 데이터 수신', { 
+        
+        // 태스크 생성 플래그 리셋
+        setIsTaskCreating(false);
+        
+        // 모든 플레이어가 업무 화면으로 넘어가도록 설정
+        setWorkspaceState('work');
+        logGameProgress('업무 화면으로 전환', { 
           taskCount: Object.keys(data.task_list).length,
           playerTasks: profile?.id ? data.task_list[profile.id]?.length || 0 : 0
         });
@@ -449,7 +527,7 @@ const GamePage: React.FC = () => {
           task_list: data.task_list
         });
         setOvertimeLoading(false); // 로딩 완료
-        logGameProgress('야근/휴식 데이터 수신', { 
+        logGameProgress('야근/휴식 화면으로 전환', { 
           taskCount: Object.keys(data.task_list).length,
           playerTasks: profile?.id ? data.task_list[profile.id]?.length || 0 : 0
         });
@@ -465,8 +543,9 @@ const GamePage: React.FC = () => {
         });
         console.log('컨텍스트 업데이트 완료:', data);
         
-        // 컨텍스트 업데이트 완료 후 바로 결과 계산 요청
-        if (socket && roomId) {
+        // 컨텍스트 업데이트 완료 후 바로 결과 계산 요청 (중복 방지)
+        if (socket && roomId && !isResultCalculating) {
+          setIsResultCalculating(true);
           calculateResult(roomId);
         }
         // 이미 game_result 상태이고 로딩 중이므로 추가 상태 변경 불필요
@@ -497,6 +576,11 @@ const GamePage: React.FC = () => {
           player_rankings: data.player_rankings
         });
         setResultLoading(false); // 로딩 완료
+        
+        // 중복 호출 방지 플래그 리셋
+        setIsContextUpdating(false);
+        setIsResultCalculating(false);
+        
         logGameProgress('게임 결과 수신', { 
           success: data.game_result?.success,
           playerCount: data.player_rankings?.length || 0
@@ -507,44 +591,192 @@ const GamePage: React.FC = () => {
 
     // 아젠다 투표 broadcast 이벤트 핸들러 추가
     const handleAgendaVoteBroadcast = (data: AgendaVoteBroadcastResponse) => {
-      if (data.room_id === roomId) {
-        // 다른 플레이어의 투표 결과를 저장
-        setOtherPlayerVotes(prev => ({
-          ...prev,
-          [data.player_id]: data.selected_option_id
-        }));
+      if (data.room_id !== roomId) return;
+
+      const currentAgenda = agendaData?.agenda_list?.[agendaIndex];
+      if (!currentAgenda || data.agenda_id !== currentAgenda.id) return;
+
+      // 다른 플레이어의 투표 결과를 저장
+      setOtherPlayerVotes(prev => ({
+        ...prev,
+        [data.player_id]: data.selected_option_id
+      }));
+      
+      // 투표 중인 플레이어 목록에 추가
+      setVotingPlayers(prev => {
+        const newVotingPlayers = new Set([...prev, data.player_id]);
         
-        // 투표 중인 플레이어 목록에 추가
-        setVotingPlayers(prev => {
-          const newVotingPlayers = new Set([...prev, data.player_id]);
-          
-          // 모든 플레이어가 투표했는지 확인
-          const allPlayersVoted = newVotingPlayers.size >= (room?.players?.length || 0);
-          
-          if (allPlayersVoted) {
-            // 모든 플레이어가 투표 완료 시 2초 후 결과 화면으로 전환
-            setTimeout(() => {
-              setWorkspaceState('agenda_result');
-            }, 2000);
-          }
-          
-          return newVotingPlayers;
-        });
+        // 모든 플레이어가 투표했는지 확인
+        const allPlayersVoted = newVotingPlayers.size >= (room?.players?.length || 0);
         
-        console.log(`${data.player_name}님이 투표했습니다:`, data.selected_option_id);
-      }
+        if (allPlayersVoted) {
+          // 모든 플레이어가 투표 완료 시 2초 후 결과 화면으로 전환
+          setTimeout(() => {
+            setWorkspaceState('agenda_result');
+          }, 2000);
+        }
+        
+        return newVotingPlayers;
+      });
+      
+      console.log(`${data.player_name}님이 투표했습니다:`, data.selected_option_id);
     };
 
     // 아젠다 투표 완료 이벤트 핸들러 추가
     const handleAgendaVoteCompleted = (data: any) => {
-      if (data.room_id === roomId) {
-        setVoteResults(data);
-        setAllVotesCompleted(true);
+      if (data.room_id !== roomId) return;
+
+      const currentAgenda = agendaData?.agenda_list?.[agendaIndex];
+      if (!currentAgenda || data.agenda_id !== currentAgenda.id) return;
+
+      setVoteResults(data);
+      setAllVotesCompleted(true);
+      
+      // 투표 완료 후 결과 화면으로 전환
+      setTimeout(() => {
+        setWorkspaceState('agenda_result');
+      }, 2000); // 2초 후 결과 화면으로
+    };
+
+    // 아젠다 네비게이션 이벤트 핸들러 추가
+    const handleAgendaNavigate = (data: any) => {
+      if (data.room_id !== roomId) return;
+
+      logGameProgress('아젠다 네비게이션 수신', { 
+        action: data.action,
+        hostName: data.host_display_name
+      });
+
+      if (data.action === 'next') {
+        // 다음 안건으로 이동
+        const nextAgendaExists = agendaIndex < (agendaData?.agenda_list?.length || 0) - 1;
         
-        // 투표 완료 후 결과 화면으로 전환
-        setTimeout(() => {
-          setWorkspaceState('agenda_result');
-        }, 2000); // 2초 후 결과 화면으로
+        if (nextAgendaExists) {
+          // 투표 상태 초기화
+          setOtherPlayerVotes({});
+          setVoteResults(null);
+          setAllVotesCompleted(false);
+          setVotingPlayers(new Set());
+          setCurrentAgendaId(null);
+          
+          // 다음 안건으로 이동
+          setAgendaIndex(agendaIndex + 1);
+          setWorkspaceState('agenda');
+          setSelectedOption(null);
+          
+          logGameProgress('다음 안건으로 이동', { 
+            nextAgendaIndex: agendaIndex + 2,
+            totalAgendas: agendaData?.agenda_list?.length || 0
+          });
+        }
+      } else if (data.action === 'finish') {
+        // 업무 단계로 이동
+        // 투표 상태 초기화
+        setOtherPlayerVotes({});
+        setVoteResults(null);
+        setAllVotesCompleted(false);
+        setVotingPlayers(new Set());
+        setCurrentAgendaId(null);
+        
+        setWorkspaceState('work');
+        setSelectedOption(null);
+        setWorkLoading(true); // 로딩 시작
+        
+        logGameProgress('업무 단계 시작', { 
+          totalAgendas: agendaData?.agenda_list?.length || 0
+        });
+        
+        // task 생성 요청 (중복 방지)
+        if (socket && roomId && !isTaskCreating) {
+          setIsTaskCreating(true);
+          createTask(roomId);
+        }
+      }
+    };
+
+    // 태스크 완료 브로드캐스트 이벤트 핸들러 추가
+    const handleTaskCompletedBroadcast = (data: any) => {
+      if (data.room_id !== roomId) return;
+
+      logGameProgress('태스크 완료 브로드캐스트 수신', { 
+        playerId: data.player_id,
+        playerName: data.player_name,
+        taskId: data.task_id
+      });
+      
+      // 디버깅용 로그
+      console.log('태스크 완료 브로드캐스트 수신:', {
+        playerId: data.player_id,
+        playerName: data.player_name,
+        taskId: data.task_id,
+        currentCompletedTaskPlayers: Object.fromEntries(
+          Object.entries(completedTaskPlayers).map(([playerId, tasks]) => [
+            playerId, 
+            Array.from(tasks)
+          ])
+        )
+      });
+
+      // 태스크 완료한 플레이어의 완료된 태스크 추가
+      setCompletedTaskPlayers(prev => {
+        const newCompletedPlayers = { ...prev };
+        
+        if (!newCompletedPlayers[data.player_id]) {
+          newCompletedPlayers[data.player_id] = new Set();
+        }
+        
+        newCompletedPlayers[data.player_id].add(data.task_id);
+        
+        // ref를 통해 최신 room 상태를 가져와서 사용
+        const currentRoom = roomRef.current;
+        
+        logGameProgress('태스크 완료 플레이어 업데이트', {
+          playerId: data.player_id,
+          completedTaskCount: newCompletedPlayers[data.player_id].size,
+          totalPlayers: currentRoom?.players?.length || 0
+        });
+        
+        // 업데이트된 상태 로그
+        console.log('태스크 완료 상태 업데이트 후:', {
+          playerId: data.player_id,
+          completedTaskCount: newCompletedPlayers[data.player_id].size,
+          allCompletedTasks: Object.fromEntries(
+            Object.entries(newCompletedPlayers).map(([playerId, tasks]) => [
+              playerId, 
+              Array.from(tasks)
+            ])
+          )
+        });
+        
+        return newCompletedPlayers;
+      });
+    };
+
+    // 태스크 네비게이션 이벤트 핸들러 추가
+    const handleTaskNavigate = (data: any) => {
+      if (data.room_id !== roomId) return;
+
+      logGameProgress('태스크 네비게이션 수신', { 
+        hostName: data.host_display_name
+      });
+
+      // 태스크 완료 상태 초기화
+      setCompletedTaskPlayers({});
+      setAllMyTasksCompleted(false); // 내 태스크 완료 상태도 초기화
+      setAllPlayersCompleted(false); // 모든 플레이어 완료 상태도 초기화
+      
+      // overtime 단계로 이동하고 로딩 상태 설정
+      setWorkspaceState('overtime');
+      setOvertimeLoading(true); // 로딩 시작
+      setOvertimeData(null); // 기존 데이터 초기화
+      
+      logGameProgress('야근/휴식 단계 시작', { 
+        hostName: data.host_display_name
+      });
+      
+      // overtime 생성 요청
+      if (socket && roomId) {
+        createOvertime(roomId);
       }
     };
     
@@ -559,8 +791,19 @@ const GamePage: React.FC = () => {
     // game_progress_updated 이벤트 핸들러 추가
     const handleGameProgressUpdated = (data: any) => {
       if (data.room_id === roomId) {
-        // agenda 데이터가 있으면 처리
-        if (data.agenda_list && data.agenda_list.length > 0) {
+        // 현재 workspace 상태에 따라 적절히 처리
+        const currentPhase = data.phase;
+        
+        logGameProgress('게임 진행 상황 업데이트 수신', { 
+          currentWorkspaceState: workspaceState,
+          receivedPhase: data.phase,
+          hasAgendaList: !!data.agenda_list,
+          hasOvertimeTaskList: !!data.overtime_task_list,
+          hasGameResult: !!data.game_result
+        });
+        
+        // agenda 데이터가 있으면 처리 (agenda 단계에서만)
+        if (data.agenda_list && data.agenda_list.length > 0 && workspaceState === 'agenda') {
           setAgendaData({
             description: data.description || '아젠다 설명',
             agenda_list: data.agenda_list
@@ -572,8 +815,8 @@ const GamePage: React.FC = () => {
           });
         }
         
-        // context 데이터가 있으면 처리
-        if (data.company_context && data.player_context_list) {
+        // context 데이터가 있으면 처리 (context 단계에서만)
+        if (data.company_context && data.player_context_list && workspaceState === 'context') {
           setContextData({
             company_context: data.company_context,
             player_context_list: data.player_context_list
@@ -585,8 +828,8 @@ const GamePage: React.FC = () => {
           });
         }
         
-        // story 데이터가 있으면 처리
-        if (data.story) {
+        // story 데이터가 있으면 처리 (prologue 단계에서만)
+        if (data.story && workspaceState === 'prologue') {
           setPrologueData({ story: data.story });
           setPrologueLoading(false);
           logGameProgress('스토리 데이터 수신', { 
@@ -594,8 +837,8 @@ const GamePage: React.FC = () => {
           });
         }
 
-        // overtime 데이터가 있으면 처리
-        if (data.overtime_task_list && Object.keys(data.overtime_task_list).length > 0) {
+        // overtime 데이터가 있으면 처리 (overtime 단계에서만)
+        if (data.overtime_task_list && Object.keys(data.overtime_task_list).length > 0 && workspaceState === 'overtime') {
           setOvertimeData({
             task_list: data.overtime_task_list
           });
@@ -607,8 +850,8 @@ const GamePage: React.FC = () => {
           console.log('Overtime 데이터 업데이트:', data.overtime_task_list);
         }
 
-        // 게임 결과 데이터가 있으면 처리
-        if (data.game_result && data.player_rankings) {
+        // 게임 결과 데이터가 있으면 처리 (game_result 단계에서만)
+        if (data.game_result && data.player_rankings && workspaceState === 'game_result') {
           setGameResultData({
             game_result: data.game_result,
             player_rankings: data.player_rankings
@@ -626,6 +869,7 @@ const GamePage: React.FC = () => {
     socket.on(SocketEventType.START_GAME, handleGameStart);
     socket.on('story_created', handleStoryCreated);
     socket.on('context_created', handleContextCreated);
+    socket.on(SocketEventType.AGENDA_LOADING_STARTED, handleAgendaLoadingStarted); // 추가
     socket.on(SocketEventType.CREATE_AGENDA, handleAgendaCreated);
     socket.on('task_created', handleTaskCreated); // 추가
     socket.on('overtime_created', handleOvertimeCreated); // 추가
@@ -633,6 +877,9 @@ const GamePage: React.FC = () => {
     socket.on('explanation_created', handleExplanationCreated); // 추가
     socket.on(SocketEventType.AGENDA_VOTE_BROADCAST, handleAgendaVoteBroadcast); // 추가
     socket.on(SocketEventType.AGENDA_VOTE_COMPLETED, handleAgendaVoteCompleted); // 추가
+    socket.on(SocketEventType.AGENDA_NAVIGATE, handleAgendaNavigate); // 추가
+    socket.on(SocketEventType.TASK_COMPLETED_BROADCAST, handleTaskCompletedBroadcast); // 추가
+    socket.on(SocketEventType.TASK_NAVIGATE, handleTaskNavigate); // 추가
     socket.on(SocketEventType.FINISH_GAME, handleGameFinish);
     socket.on(SocketEventType.GAME_PROGRESS_UPDATED, handleGameProgressUpdated); // 추가
     socket.on('game_result_created', handleGameResultCreated); // 추가
@@ -641,6 +888,7 @@ const GamePage: React.FC = () => {
       socket.off(SocketEventType.START_GAME, handleGameStart);
       socket.off('story_created', handleStoryCreated);
       socket.off('context_created', handleContextCreated);
+      socket.off(SocketEventType.AGENDA_LOADING_STARTED, handleAgendaLoadingStarted); // 추가
       socket.off(SocketEventType.CREATE_AGENDA, handleAgendaCreated);
       socket.off('task_created', handleTaskCreated); // 추가
       socket.off('overtime_created', handleOvertimeCreated); // 추가
@@ -648,6 +896,9 @@ const GamePage: React.FC = () => {
       socket.off('explanation_created', handleExplanationCreated); // 추가
       socket.off(SocketEventType.AGENDA_VOTE_BROADCAST, handleAgendaVoteBroadcast); // 추가
       socket.off(SocketEventType.AGENDA_VOTE_COMPLETED, handleAgendaVoteCompleted); // 추가
+      socket.off(SocketEventType.AGENDA_NAVIGATE, handleAgendaNavigate); // 추가
+      socket.off(SocketEventType.TASK_COMPLETED_BROADCAST, handleTaskCompletedBroadcast); // 추가
+      socket.off(SocketEventType.TASK_NAVIGATE, handleTaskNavigate); // 추가
       socket.off(SocketEventType.FINISH_GAME, handleGameFinish);
       socket.off(SocketEventType.GAME_PROGRESS_UPDATED, handleGameProgressUpdated); // 추가
       socket.off('game_result_created', handleGameResultCreated); // 추가
@@ -670,7 +921,7 @@ const GamePage: React.FC = () => {
         }
         
         showInfo('방이 삭제되었습니다.', '방 삭제');
-        navigate('/home');
+        navigate('/');
       }
     };
     socket.on(SocketEventType.ROOM_DELETED, handleRoomDeleted);
@@ -729,7 +980,7 @@ const GamePage: React.FC = () => {
     });
     
     // 백엔드로 투표 결과 전송 (broadcast 포함)
-    voteAgenda(roomId, currentAgenda.id, optionId);
+    voteAgenda(roomId, currentAgenda.id, optionId, profile?.display_name);
     
     // 내가 투표했음을 표시
     setVotingPlayers(prev => {
@@ -769,7 +1020,7 @@ const GamePage: React.FC = () => {
     if (roomId) {
       leaveRoom();
     }
-    navigate('/home'); 
+    navigate('/'); 
   };
 
   const handleFinishGame = () => {
@@ -1006,14 +1257,24 @@ const GamePage: React.FC = () => {
                     <div className="briefing-section">
                       <h4>나의 상태</h4>
                       <p style={{ whiteSpace: 'pre-line' }}>
-                        {(contextData.player_context_list?.[0]?.context?.["1"] || "플레이어 상태를 불러오는 중...")
-                          .split(',')
-                          .map((item: string, index: number) => (
+                        {(() => {
+                          // 현재 플레이어의 컨텍스트 찾기
+                          const myContext = contextData.player_context_list?.find(
+                            (player: any) => player.id === profile?.id
+                          );
+                          
+                          if (!myContext) {
+                            return "플레이어 상태를 불러오는 중...";
+                          }
+                          
+                          const contextText = myContext.context?.["1"] || "플레이어 상태를 불러오는 중...";
+                          return contextText.split(',').map((item: string, index: number) => (
                             <span key={index}>
                               {item.trim()}
-                              {index < (contextData.player_context_list?.[0]?.context?.["1"] || "").split(',').length - 1 && '\n'}
+                              {index < contextText.split(',').length - 1 && '\n'}
                             </span>
-                          ))}
+                          ));
+                        })()}
                       </p>
                     </div>
                   </>
@@ -1456,12 +1717,11 @@ const GamePage: React.FC = () => {
                   {/* 안건 헤더 */}
                   <div className="agenda-header">
                     <h3 className="agenda-title">{currentAgenda.name}</h3>
-                    <div className="agenda-progress">
-                      <span>진행 상황: {agendaIndex + 1} / {agendaData.agenda_list.length}</span>
-                      {selectedOption && (
+                    {selectedOption && (
+                      <div className="agenda-progress">
                         <span className="voting-status-text">투표 완료! 다른 플레이어 대기 중...</span>
-                      )}
-                    </div>
+                      </div>
+                    )}
                     <div className="timer-container">
                       <span>남은 시간</span>
                       <div className="timer-progress-bar">
@@ -1479,8 +1739,7 @@ const GamePage: React.FC = () => {
                         className="option-card agenda-option"
                         onClick={() => handleAgendaOptionSelect(option.id)}
                         style={{
-                          opacity: selectedOption ? 0.6 : 1,
-                          cursor: selectedOption ? 'not-allowed' : 'pointer'
+                          cursor: 'pointer'
                         }}
                       >
                         <div className="option-icon">{option.icon}</div>
@@ -1494,11 +1753,13 @@ const GamePage: React.FC = () => {
                       </div>
                     ))}
                   </div>
-                  {selectedOption && (
-                    <div className="voting-status">
-                      <h4>투표 현황</h4>
-                      <div className="voting-players">
-                        {room.players?.map((player: any) => (
+                  <div className="voting-status">
+                    <h4>투표 현황</h4>
+                    <div className="voting-players">
+                      {room.players?.map((player: any) => {
+                        const hasVoted = votingPlayers.has(player.profile_id);
+                        
+                        return (
                           <div key={player.profile_id} className="voting-player">
                             <img 
                               src={player.avatar_url || 'https://ssl.pstatic.net/static/pwe/address/img_profile.png'} 
@@ -1507,13 +1768,13 @@ const GamePage: React.FC = () => {
                             />
                             <span className="player-name">{player.display_name}</span>
                             <span className="voting-status-icon">
-                              {votingPlayers.has(player.profile_id) ? '✅' : '⏳'}
+                              {hasVoted ? '✅' : '⏳'}
                             </span>
                           </div>
-                        ))}
-                      </div>
+                        );
+                      })}
                     </div>
-                  )}
+                  </div>
                   </div>
                 );
               }
@@ -1609,9 +1870,6 @@ const GamePage: React.FC = () => {
 
                   <div className="agenda-header">
                     <h3 className="agenda-title">{currentAgenda.name}</h3>
-                    <div className="agenda-progress">
-                      <span>진행 상황: {agendaIndex + 1} / {agendaData.agenda_list.length}</span>
-                    </div>
                     <div className="agenda-result-info">
                       {voteResults ? '투표 완료!' : '투표 진행 중...'}
                     </div>
@@ -1637,34 +1895,15 @@ const GamePage: React.FC = () => {
                     <button
                       className="next-step-button"
                       onClick={() => {
-                        // 투표 상태 초기화
-                        setOtherPlayerVotes({});
-                        setVoteResults(null);
-                        setAllVotesCompleted(false);
-                        setVotingPlayers(new Set());
-                        
                         if (nextAgendaExists) {
-                          setAgendaIndex(agendaIndex + 1);
-                          setWorkspaceState('agenda');
-                          setSelectedOption(null);
-                          logGameProgress('다음 아젠다로 이동', { 
-                            nextAgendaIndex: agendaIndex + 2,
-                            totalAgendas: agendaData.agenda_list.length
-                          });
-                          console.log(`다음 아젠다로 이동: ${agendaIndex + 2}/${agendaData.agenda_list.length}`);
-                        } else {
-                          // 모든 안건이 끝나면 work 상태로 전환하고 task 생성 요청
-                          setWorkspaceState('work');
-                          setSelectedOption(null);
-                          setWorkLoading(true); // 로딩 시작
-                          logGameProgress('업무 단계 시작', { 
-                            totalAgendas: agendaData.agenda_list.length
-                          });
-                          console.log('모든 아젠다 완료, 업무 단계로 이동');
-                          
-                          // task 생성 요청
+                          // 다음 안건으로 이동하는 소켓 이벤트 전송
                           if (socket && roomId) {
-                            createTask(roomId);
+                            navigateAgenda(roomId, 'next');
+                          }
+                        } else {
+                          // 업무 단계로 이동하는 소켓 이벤트 전송
+                          if (socket && roomId) {
+                            navigateAgenda(roomId, 'finish');
                           }
                         }
                       }}
@@ -1817,6 +2056,17 @@ const GamePage: React.FC = () => {
                                         totalTasks: playerTasks.length
                                       });
                                       
+                                      // 현재 태스크 완료 알림 (모든 태스크에서 호출)
+                                      if (socket && roomId) {
+                                        console.log('completeTask 호출:', {
+                                          roomId,
+                                          playerName: profile?.display_name,
+                                          taskId: task.id,
+                                          task: task
+                                        });
+                                        completeTask(roomId, profile?.display_name, task.id);
+                                      }
+                                      
                                       // 현재 업무 완료 처리
                                       if (workTaskIndex < playerTasks.length - 1) {
                                         // 다음 업무로 이동
@@ -1827,22 +2077,13 @@ const GamePage: React.FC = () => {
                                           totalTasks: playerTasks.length
                                         });
                                       } else {
-                                        // 모든 업무 완료 시 overtime 생성 요청
-                                        if (socket && roomId) {
-                                          createOvertime(roomId);
-                                          setOvertimeLoading(true); // 로딩 시작
-                                        }
-                                        setWorkspaceState('overtime');
-                                        setSelectedOption(null);
+                                        // 마지막 태스크도 완료 상태로 표시하기 위해 인덱스 증가
+                                        setWorkTaskIndex(workTaskIndex + 1);
+                                        setAllMyTasksCompleted(true); // 모든 태스크 완료 플래그 설정
                                         
-                                        logGameProgress('야근/휴식 단계 시작', {
+                                        logGameProgress('모든 태스크 완료', {
                                           totalTasks: playerTasks.length
                                         });
-                                        
-                                        // 이미 overtime 데이터가 있으면 로딩 완료
-                                        if (overtimeData && overtimeData.task_list) {
-                                          setOvertimeLoading(false);
-                                        }
                                       }
                                     }}
                                   >
@@ -1857,6 +2098,60 @@ const GamePage: React.FC = () => {
                       );
                     })}
                   </div>
+                  
+
+                  
+                  {/* 호스트 전용 다음 단계 버튼 */}
+                  {isHost && (
+                    <button
+                      className="next-step-button"
+                      onClick={() => {
+                        if (socket && roomId) {
+                          navigateTask(roomId);
+                        }
+                      }}
+                      disabled={!allPlayersCompleted}
+                      style={{
+                        backgroundColor: allPlayersCompleted ? '#28a745' : '#ccc',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '12px 24px',
+                        fontSize: '16px',
+                        fontWeight: 'bold',
+                        cursor: allPlayersCompleted ? 'pointer' : 'not-allowed',
+                        marginTop: '20px',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                      }}
+                    >
+                      {allPlayersCompleted 
+                        ? '야근/휴식 단계로 진행' 
+                        : '모든 플레이어 완료 대기 중...'}
+                    </button>
+                  )}
+                  
+                  {/* 호스트가 아닌 경우 대기 메시지 */}
+                  {!isHost && (
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '20px',
+                      backgroundColor: allMyTasksCompleted ? '#d4edda' : '#f8f9fa',
+                      borderRadius: '8px',
+                      border: `1px solid ${allMyTasksCompleted ? '#c3e6cb' : '#e9ecef'}`,
+                      marginTop: '20px'
+                    }}>
+                      <p style={{ 
+                        margin: 0, 
+                        color: allMyTasksCompleted ? '#155724' : '#666', 
+                        fontSize: '16px',
+                        fontWeight: allMyTasksCompleted ? 'bold' : 'normal'
+                      }}>
+                        {allMyTasksCompleted 
+                          ? '🎉 모든 태스크를 완료했습니다!' 
+                          : '🕐 태스크를 진행해주세요...'}
+                      </p>
+                    </div>
+                  )}
                 </div>
               );
             })()}
@@ -1985,8 +2280,9 @@ const GamePage: React.FC = () => {
                                   
                                   const allComplete = hasAgendaSelection && hasTaskSelections && hasOvertimeSelections;
                                   
-                                  // 모든 선택이 완료되었을 때만 updateContext 실행
-                                  if (socket && roomId && allComplete) {
+                                  // 모든 선택이 완료되었을 때만 updateContext 실행 (중복 방지)
+                                  if (socket && roomId && allComplete && !isContextUpdating) {
+                                    setIsContextUpdating(true);
                                     const currentSelections = {
                                       agenda_selections: newSelections.agenda_selections,
                                       task_selections: newSelections.task_selections,
@@ -2095,8 +2391,9 @@ const GamePage: React.FC = () => {
                     <button
                       className="next-step-button"
                       onClick={() => {
-                        // 결과 계산 요청
-                        if (socket && roomId) {
+                        // 결과 계산 요청 (중복 방지)
+                        if (socket && roomId && !isResultCalculating) {
+                          setIsResultCalculating(true);
                           calculateResult(roomId);
                           setResultLoading(true);
                         }
