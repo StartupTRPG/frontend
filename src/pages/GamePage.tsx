@@ -493,7 +493,6 @@ const GamePage: React.FC = () => {
     const handleGameFinish = (data: any) => {
       if (data.room_id === roomId) {
         setGameStarted(false);
-        showInfo(`${data.host_display_name}님이 게임을 종료했습니다.`, '게임 종료');
         navigate(`/room/${roomId}`); // 로비로 돌아가기
       } else {
       }

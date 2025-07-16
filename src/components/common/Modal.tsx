@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 interface ModalProps {
   isOpen: boolean;
@@ -17,6 +17,23 @@ const Modal: React.FC<ModalProps> = ({
   type = 'info',
   showCloseButton = true
 }) => {
+  // ESC 키로 모달 닫기
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const getTypeStyles = () => {
@@ -104,24 +121,56 @@ const Modal: React.FC<ModalProps> = ({
           <div style={{ 
             display: 'flex', 
             alignItems: 'center', 
+            justifyContent: 'space-between',
             marginBottom: '16px' 
           }}>
-            <span style={{ 
-              fontSize: '24px', 
-              marginRight: '12px' 
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center' 
             }}>
-              {getIcon()}
-            </span>
-            {title && (
-              <h3 style={{ 
-                fontSize: '18px', 
-                fontWeight: '600',
-                margin: 0,
-                color: typeStyles.color
+              <span style={{ 
+                fontSize: '24px', 
+                marginRight: '12px' 
               }}>
-                {title}
-              </h3>
-            )}
+                {getIcon()}
+              </span>
+              {title && (
+                <h3 style={{ 
+                  fontSize: '18px', 
+                  fontWeight: '600',
+                  margin: 0,
+                  color: typeStyles.color
+                }}>
+                  {title}
+                </h3>
+              )}
+            </div>
+            {/* X 버튼 */}
+            <button
+              onClick={onClose}
+              style={{
+                background: 'none',
+                border: 'none',
+                fontSize: '20px',
+                cursor: 'pointer',
+                color: typeStyles.color,
+                padding: '4px',
+                borderRadius: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '28px',
+                height: '28px'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.1)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
+              ✕
+            </button>
           </div>
           
           {/* Content */}
