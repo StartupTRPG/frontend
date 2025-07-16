@@ -468,9 +468,8 @@ const GamePage: React.FC = () => {
         // 컨텍스트 업데이트 완료 후 바로 결과 계산 요청
         if (socket && roomId) {
           calculateResult(roomId);
-          setResultLoading(true);
         }
-        setWorkspaceState('game_result');
+        // 이미 game_result 상태이고 로딩 중이므로 추가 상태 변경 불필요
       }
     };
 
@@ -1266,32 +1265,50 @@ const GamePage: React.FC = () => {
                     </p>
                   </div>
                   
-                  {/* Daily Scrum 진행하기 버튼 */}
-                  <button
-                    className="next-step-button"
-                    onClick={() => {
-                      // 아젠다 생성 요청
-                      if (socket && roomId) {
-                        setAgendaLoading(true); // 아젠다 로딩 시작
-                        setWorkspaceState('agenda'); // 아젠다 상태로 즉시 전환
-                        socket.emit(SocketEventType.CREATE_AGENDA, { room_id: roomId });
-                      }
-                    }}
-                    disabled={contextLoading} // 컨텍스트 로딩 중이면 버튼 비활성화
-                    style={{
-                      backgroundColor: contextLoading ? '#ccc' : '#28a745',
-                      color: 'white',
-                      border: 'none',
+                  {/* Daily Scrum 진행하기 버튼 - Host만 표시 */}
+                  {isHost && (
+                    <button
+                      className="next-step-button"
+                      onClick={() => {
+                        // 아젠다 생성 요청
+                        if (socket && roomId) {
+                          setAgendaLoading(true); // 아젠다 로딩 시작
+                          setWorkspaceState('agenda'); // 아젠다 상태로 즉시 전환
+                          socket.emit(SocketEventType.CREATE_AGENDA, { room_id: roomId });
+                        }
+                      }}
+                      disabled={contextLoading} // 컨텍스트 로딩 중이면 버튼 비활성화
+                      style={{
+                        backgroundColor: contextLoading ? '#ccc' : '#28a745',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '12px 24px',
+                        fontSize: '16px',
+                        fontWeight: 'bold',
+                        cursor: contextLoading ? 'not-allowed' : 'pointer',
+                        marginTop: '20px'
+                      }}
+                    >
+                      {contextLoading ? '⏳ 컨텍스트 생성 중...' : '🎯 Daily Scrum 진행하기'}
+                    </button>
+                  )}
+                  
+                  {/* Host가 아닌 경우 대기 메시지 */}
+                  {!isHost && (
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '20px',
+                      backgroundColor: '#f8f9fa',
                       borderRadius: '8px',
-                      padding: '12px 24px',
-                      fontSize: '16px',
-                      fontWeight: 'bold',
-                      cursor: contextLoading ? 'not-allowed' : 'pointer',
+                      border: '1px solid #e9ecef',
                       marginTop: '20px'
-                    }}
-                  >
-                    {contextLoading ? '⏳ 컨텍스트 생성 중...' : '🎯 Daily Scrum 진행하기'}
-                  </button>
+                    }}>
+                      <p style={{ margin: 0, color: '#666', fontSize: '16px' }}>
+                        🕐 Host가 Daily Scrum을 시작할 때까지 기다려주세요...
+                      </p>
+                    </div>
+                  )}
                 </div>
               );
             })()}
@@ -1373,31 +1390,49 @@ const GamePage: React.FC = () => {
                     </div>
                   )}
                   
-                  {/* Daily Scrum 버튼 */}
-                  <button
-                    className="next-step-button"
-                    onClick={() => {
-                      // 아젠다 생성 요청
-                      if (socket && roomId) {
-                        setAgendaLoading(true); // 아젠다 로딩 시작
-                        socket.emit(SocketEventType.CREATE_AGENDA, { room_id: roomId });
-                      }
-                    }}
-                    disabled={contextLoading} // 컨텍스트 로딩 중이면 버튼 비활성화
-                    style={{
-                      backgroundColor: contextLoading ? '#ccc' : '#28a745',
-                      color: 'white',
-                      border: 'none',
+                  {/* Daily Scrum 버튼 - Host만 표시 */}
+                  {isHost && (
+                    <button
+                      className="next-step-button"
+                      onClick={() => {
+                        // 아젠다 생성 요청
+                        if (socket && roomId) {
+                          setAgendaLoading(true); // 아젠다 로딩 시작
+                          socket.emit(SocketEventType.CREATE_AGENDA, { room_id: roomId });
+                        }
+                      }}
+                      disabled={contextLoading} // 컨텍스트 로딩 중이면 버튼 비활성화
+                      style={{
+                        backgroundColor: contextLoading ? '#ccc' : '#28a745',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '12px 24px',
+                        fontSize: '16px',
+                        fontWeight: 'bold',
+                        cursor: contextLoading ? 'not-allowed' : 'pointer',
+                        marginTop: '20px'
+                      }}
+                    >
+                      {contextLoading ? '⏳ 컨텍스트 생성 중...' : '🎯 Daily Scrum'}
+                    </button>
+                  )}
+                  
+                  {/* Host가 아닌 경우 대기 메시지 */}
+                  {!isHost && (
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '20px',
+                      backgroundColor: '#f8f9fa',
                       borderRadius: '8px',
-                      padding: '12px 24px',
-                      fontSize: '16px',
-                      fontWeight: 'bold',
-                      cursor: contextLoading ? 'not-allowed' : 'pointer',
+                      border: '1px solid #e9ecef',
                       marginTop: '20px'
-                    }}
-                  >
-                    {contextLoading ? '⏳ 컨텍스트 생성 중...' : '🎯 Daily Scrum'}
-                  </button>
+                    }}>
+                      <p style={{ margin: 0, color: '#666', fontSize: '16px' }}>
+                        🕐 Host가 Daily Scrum을 시작할 때까지 기다려주세요...
+                      </p>
+                    </div>
+                  )}
                 </div>
               );
             })()}
@@ -1597,56 +1632,74 @@ const GamePage: React.FC = () => {
                       </div>
                     ))}
                   </div>
-                  {/* 다음 버튼 - 항상 표시 */}
-                  <button
-                    className="next-step-button"
-                    onClick={() => {
-                      // 투표 상태 초기화
-                      setOtherPlayerVotes({});
-                      setVoteResults(null);
-                      setAllVotesCompleted(false);
-                      setVotingPlayers(new Set());
-                      
-                      if (nextAgendaExists) {
-                        setAgendaIndex(agendaIndex + 1);
-                        setWorkspaceState('agenda');
-                        setSelectedOption(null);
-                        logGameProgress('다음 아젠다로 이동', { 
-                          nextAgendaIndex: agendaIndex + 2,
-                          totalAgendas: agendaData.agenda_list.length
-                        });
-                        console.log(`다음 아젠다로 이동: ${agendaIndex + 2}/${agendaData.agenda_list.length}`);
-                      } else {
-                        // 모든 안건이 끝나면 work 상태로 전환하고 task 생성 요청
-                        setWorkspaceState('work');
-                        setSelectedOption(null);
-                        setWorkLoading(true); // 로딩 시작
-                        logGameProgress('업무 단계 시작', { 
-                          totalAgendas: agendaData.agenda_list.length
-                        });
-                        console.log('모든 아젠다 완료, 업무 단계로 이동');
+                  {/* 다음 버튼 - Host만 표시 */}
+                  {isHost && (
+                    <button
+                      className="next-step-button"
+                      onClick={() => {
+                        // 투표 상태 초기화
+                        setOtherPlayerVotes({});
+                        setVoteResults(null);
+                        setAllVotesCompleted(false);
+                        setVotingPlayers(new Set());
                         
-                        // task 생성 요청
-                        if (socket && roomId) {
-                          createTask(roomId);
+                        if (nextAgendaExists) {
+                          setAgendaIndex(agendaIndex + 1);
+                          setWorkspaceState('agenda');
+                          setSelectedOption(null);
+                          logGameProgress('다음 아젠다로 이동', { 
+                            nextAgendaIndex: agendaIndex + 2,
+                            totalAgendas: agendaData.agenda_list.length
+                          });
+                          console.log(`다음 아젠다로 이동: ${agendaIndex + 2}/${agendaData.agenda_list.length}`);
+                        } else {
+                          // 모든 안건이 끝나면 work 상태로 전환하고 task 생성 요청
+                          setWorkspaceState('work');
+                          setSelectedOption(null);
+                          setWorkLoading(true); // 로딩 시작
+                          logGameProgress('업무 단계 시작', { 
+                            totalAgendas: agendaData.agenda_list.length
+                          });
+                          console.log('모든 아젠다 완료, 업무 단계로 이동');
+                          
+                          // task 생성 요청
+                          if (socket && roomId) {
+                            createTask(roomId);
+                          }
                         }
-                      }
-                    }}
-                    style={{
-                      backgroundColor: '#28a745',
-                      color: 'white',
-                      border: 'none',
+                      }}
+                      style={{
+                        backgroundColor: '#28a745',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '12px 24px',
+                        fontSize: '16px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        marginTop: '20px',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                      }}
+                    >
+                      {nextAgendaExists ? `다음 안건으로 (${agendaIndex + 1}/${agendaData.agenda_list.length})` : '업무 시작하기'}
+                    </button>
+                  )}
+                  
+                  {/* Host가 아닌 경우 대기 메시지 */}
+                  {!isHost && (
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '20px',
+                      backgroundColor: '#f8f9fa',
                       borderRadius: '8px',
-                      padding: '12px 24px',
-                      fontSize: '16px',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      marginTop: '20px',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                    }}
-                  >
-                    {nextAgendaExists ? `다음 안건으로 (${agendaIndex + 1}/${agendaData.agenda_list.length})` : '업무 시작하기'}
-                  </button>
+                      border: '1px solid #e9ecef',
+                      marginTop: '20px'
+                    }}>
+                      <p style={{ margin: 0, color: '#666', fontSize: '16px' }}>
+                        🕐 Host가 {nextAgendaExists ? '다음 안건을 진행' : '업무를 시작'}할 때까지 기다려주세요...
+                      </p>
+                    </div>
+                  )}
                 </div>
               );
             })()}
@@ -1896,7 +1949,15 @@ const GamePage: React.FC = () => {
                                 // 선택한 옵션 저장
                                 setSelectedOption(option.id);
                                 
-                                // selections에 저장
+                                logGameProgress('야근/휴식 선택', {
+                                  taskId: task.id,
+                                  taskName: task.name,
+                                  taskType: task.type,
+                                  selectedOptionId: option.id,
+                                  selectedOptionText: option.text
+                                });
+                                
+                                // selections에 저장하고 완료 여부 확인
                                 setSelections(prev => {
                                   const newSelections = {
                                     ...prev,
@@ -1915,68 +1976,47 @@ const GamePage: React.FC = () => {
                                     allOvertimeSelections: newSelections.overtime_selections
                                   });
                                   
+                                  // 모든 선택이 완료되었는지 확인 (업데이트된 selections 기준)
+                                  const hasAgendaSelection = newSelections.agenda_selections[profile?.id || ''];
+                                  const hasTaskSelections = newSelections.task_selections[profile?.id || ''] && 
+                                    newSelections.task_selections[profile?.id || ''].length > 0;
+                                  const hasOvertimeSelections = newSelections.overtime_selections[profile?.id || ''] && 
+                                    newSelections.overtime_selections[profile?.id || ''].length > 0;
+                                  
+                                  const allComplete = hasAgendaSelection && hasTaskSelections && hasOvertimeSelections;
+                                  
+                                  // 모든 선택이 완료되었을 때만 updateContext 실행
+                                  if (socket && roomId && allComplete) {
+                                    const currentSelections = {
+                                      agenda_selections: newSelections.agenda_selections,
+                                      task_selections: newSelections.task_selections,
+                                      overtime_selections: newSelections.overtime_selections
+                                    };
+                                    
+                                    updateContext(roomId, currentSelections);
+                                    
+                                    logGameProgress('컨텍스트 업데이트 요청', {
+                                      agendaCount: Object.keys(currentSelections.agenda_selections).length,
+                                      taskCount: Object.keys(currentSelections.task_selections).length,
+                                      overtimeCount: Object.keys(currentSelections.overtime_selections).length,
+                                      allComplete: true
+                                    });
+                                    
+                                    // 바로 결과 화면으로 넘어가고 로딩 표시
+                                    setResultLoading(true);
+                                    setWorkspaceState('game_result');
+                                  } else {
+                                    logGameProgress('선택 미완료', {
+                                      hasAgenda: !!newSelections.agenda_selections[profile?.id || ''],
+                                      hasTask: !!(newSelections.task_selections[profile?.id || ''] && 
+                                        newSelections.task_selections[profile?.id || ''].length > 0),
+                                      hasOvertime: !!(newSelections.overtime_selections[profile?.id || ''] && 
+                                        newSelections.overtime_selections[profile?.id || ''].length > 0)
+                                    });
+                                  }
+                                  
                                   return newSelections;
                                 });
-                                
-                                logGameProgress('야근/휴식 선택', {
-                                  taskId: task.id,
-                                  taskName: task.name,
-                                  taskType: task.type,
-                                  selectedOptionId: option.id,
-                                  selectedOptionText: option.text
-                                });
-                                
-                                // 선택을 먼저 저장한 후 완료 여부 확인
-                                const updatedSelections = {
-                                  ...selections,
-                                  overtime_selections: {
-                                    ...selections.overtime_selections,
-                                    [profile?.id || '']: [
-                                      ...(selections.overtime_selections[profile?.id || ''] || []),
-                                      option.id
-                                    ]
-                                  }
-                                };
-                                
-                                // selections 상태 업데이트
-                                setSelections(updatedSelections);
-                                
-                                // 모든 선택이 완료되었는지 확인 (업데이트된 selections 기준)
-                                const hasAgendaSelection = updatedSelections.agenda_selections[profile?.id || ''];
-                                const hasTaskSelections = updatedSelections.task_selections[profile?.id || ''] && 
-                                  updatedSelections.task_selections[profile?.id || ''].length > 0;
-                                const hasOvertimeSelections = updatedSelections.overtime_selections[profile?.id || ''] && 
-                                  updatedSelections.overtime_selections[profile?.id || ''].length > 0;
-                                
-                                const allComplete = hasAgendaSelection && hasTaskSelections && hasOvertimeSelections;
-                                
-                                // 모든 선택이 완료되었을 때만 updateContext 실행
-                                if (socket && roomId && allComplete) {
-                                  const currentSelections = {
-                                    agenda_selections: updatedSelections.agenda_selections,
-                                    task_selections: updatedSelections.task_selections,
-                                    overtime_selections: updatedSelections.overtime_selections
-                                  };
-                                  
-                                  updateContext(roomId, currentSelections);
-                                  
-                                  logGameProgress('컨텍스트 업데이트 요청', {
-                                    agendaCount: Object.keys(currentSelections.agenda_selections).length,
-                                    taskCount: Object.keys(currentSelections.task_selections).length,
-                                    overtimeCount: Object.keys(currentSelections.overtime_selections).length,
-                                    allComplete: true
-                                  });
-                                  
-                                  // context_updated 이벤트를 기다림 (handleContextUpdated에서 explanation 호출)
-                                } else {
-                                  logGameProgress('선택 미완료', {
-                                    hasAgenda: !!selections.agenda_selections[profile?.id || ''],
-                                    hasTask: !!(selections.task_selections[profile?.id || ''] && 
-                                      selections.task_selections[profile?.id || ''].length > 0),
-                                    hasOvertime: !!(selections.overtime_selections[profile?.id || ''] && 
-                                      selections.overtime_selections[profile?.id || ''].length > 0)
-                                  });
-                                }
                           }}
                         >
                           <span className="option-text">{option.text}</span>
