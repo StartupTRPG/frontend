@@ -41,15 +41,15 @@ const GameTask: React.FC<GameTaskProps> = ({ onCreateTask, agendaList, currentTu
               border: '1px solid #ffcc02'
             }}>
               <h4 style={{ margin: '0 0 10px 0', color: '#e65100' }}>
-                {agenda.agenda_name}
+                {agenda.name}
               </h4>
               <p style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#666' }}>
-                {agenda.agenda_description}
+                {agenda.description}
               </p>
-              {agenda.agenda_options && agenda.agenda_options.length > 0 && (
+              {agenda.options && agenda.options.length > 0 && (
                 <div>
                   <strong>옵션:</strong>
-                  {agenda.agenda_options.map((option, optionIndex) => (
+                  {agenda.options.map((option, optionIndex) => (
                     <div key={optionIndex} style={{ 
                       margin: '5px 0', 
                       padding: '8px', 
@@ -57,9 +57,9 @@ const GameTask: React.FC<GameTaskProps> = ({ onCreateTask, agendaList, currentTu
                       borderRadius: '4px',
                       fontSize: '13px'
                     }}>
-                      <div><strong>{option.agenda_option_text}</strong></div>
+                      <div><strong>{option.text}</strong></div>
                       <div style={{ color: '#666', fontSize: '12px' }}>
-                        {option.agenda_option_impact_summary}
+                        {option.impact_summary}
                       </div>
                     </div>
                   ))}

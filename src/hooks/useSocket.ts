@@ -10,7 +10,6 @@ import {
   CreateAgendaRequest,
   CreateTaskRequest,
   CreateOvertimeRequest,
-  UpdateContextRequest,
   CreateExplanationRequest,
   CalculateResultRequest,
   GetGameProgressRequest,
@@ -25,6 +24,7 @@ import {
   ErrorResponse,
   Player
 } from '../types/game';
+import { UpdateContextRequest } from '../types/socket';
 
 interface UseSocketOptions {
   token: string;

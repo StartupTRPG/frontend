@@ -139,4 +139,12 @@ export interface AgendaVoteCompletedResponse {
     votes: number;
     voters: string[];
   }[];
-} 
+}
+
+// UpdateContext 관련 인터페이스
+export interface UpdateContextRequest {
+  room_id: string;
+  agenda_selections: Record<string, string>; // player_id -> selected_option_id
+  task_selections: Record<string, string[]>; // player_id -> selected_option_ids[]
+  overtime_selections: Record<string, string[]>; // player_id -> selected_option_ids[]
+}

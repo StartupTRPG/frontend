@@ -110,6 +110,8 @@ const GamePage: React.FC = () => {
     voteAgenda, // 추가
     createTask, // 추가
     createOvertime, // 추가
+    updateContext, // 추가
+    createExplanation, // 추가
     getGameProgress, // 추가
     calculateResult // 추가
   } = useSocket({
@@ -121,7 +123,7 @@ const GamePage: React.FC = () => {
   const joinTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // --- 게임 상태 관리 ---
-  const [workspaceState, setWorkspaceState] = useState<'prologue' | 'context' | 'agenda' | 'work' | 'overtime' | 'agenda_result' | 'work_result' | 'game_result'>('prologue');
+  const [workspaceState, setWorkspaceState] = useState<'prologue' | 'context' | 'agenda' | 'work' | 'overtime' | 'explanation' | 'agenda_result' | 'work_result' | 'game_result'>('prologue');
   const [agendaIndex, setAgendaIndex] = useState(0); // 현재 진행중인 안건 인덱스
   const [workTaskIndex, setWorkTaskIndex] = useState(0); // 현재 진행중인 업무 인덱스
   const [selectedOption, setSelectedOption] = useState<string | null>(null); // 선택한 옵션 ID
@@ -141,6 +143,17 @@ const GamePage: React.FC = () => {
       timestamp: new Date().toISOString(),
       ...data
     });
+  };
+  
+  // 모든 선택이 완료되었는지 확인하는 함수
+  const allSelectionsComplete = () => {
+    const hasAgendaSelection = selections.agenda_selections[profile?.id || ''];
+    const hasTaskSelections = selections.task_selections[profile?.id || ''] && 
+      selections.task_selections[profile?.id || ''].length > 0;
+    const hasOvertimeSelections = selections.overtime_selections[profile?.id || ''] && 
+      selections.overtime_selections[profile?.id || ''].length > 0;
+    
+    return hasAgendaSelection && hasTaskSelections && hasOvertimeSelections;
   };
   
   // --- 투표 관련 상태 추가 ---
@@ -167,6 +180,20 @@ const GamePage: React.FC = () => {
   
   const [gameResultData, setGameResultData] = useState<any>(null);
   const [resultLoading, setResultLoading] = useState(false);
+  
+  const [explanationData, setExplanationData] = useState<any>(null);
+  const [explanationLoading, setExplanationLoading] = useState(false);
+  
+  // 선택 데이터 저장
+  const [selections, setSelections] = useState<{
+    agenda_selections: Record<string, string>;
+    task_selections: Record<string, string[]>;
+    overtime_selections: Record<string, string[]>;
+  }>({
+    agenda_selections: {},
+    task_selections: {},
+    overtime_selections: {}
+  });
   
   const [prologueData, setPrologueData] = useState<any>(null);
   const [prologueLoading, setPrologueLoading] = useState(false);
@@ -430,6 +457,38 @@ const GamePage: React.FC = () => {
       }
     };
 
+    // 컨텍스트 업데이트 완료 이벤트 핸들러 추가
+    const handleContextUpdated = (data: any) => {
+      if (data.room_id === roomId) {
+        logGameProgress('컨텍스트 업데이트 완료', { 
+          phase: data.phase
+        });
+        console.log('컨텍스트 업데이트 완료:', data);
+        
+        // 컨텍스트 업데이트 완료 후 바로 결과 계산 요청
+        if (socket && roomId) {
+          calculateResult(roomId);
+          setResultLoading(true);
+        }
+        setWorkspaceState('game_result');
+      }
+    };
+
+    // 설명 생성 완료 이벤트 핸들러 추가
+    const handleExplanationCreated = (data: any) => {
+      if (data.room_id === roomId) {
+        setExplanationData({
+          explanation: data.explanation
+        });
+        setExplanationLoading(false);
+        logGameProgress('설명 생성 완료', { 
+          explanationLength: data.explanation?.length || 0
+        });
+        // 설명 생성 후 바로 결과 계산으로 진행
+        setWorkspaceState('game_result');
+      }
+    };
+
     // 게임 결과 수신 이벤트 핸들러 추가
     const handleGameResultCreated = (data: any) => {
       if (data.room_id === roomId) {
@@ -571,6 +630,8 @@ const GamePage: React.FC = () => {
     socket.on(SocketEventType.CREATE_AGENDA, handleAgendaCreated);
     socket.on('task_created', handleTaskCreated); // 추가
     socket.on('overtime_created', handleOvertimeCreated); // 추가
+    socket.on('context_updated', handleContextUpdated); // 추가
+    socket.on('explanation_created', handleExplanationCreated); // 추가
     socket.on(SocketEventType.AGENDA_VOTE_BROADCAST, handleAgendaVoteBroadcast); // 추가
     socket.on(SocketEventType.AGENDA_VOTE_COMPLETED, handleAgendaVoteCompleted); // 추가
     socket.on(SocketEventType.FINISH_GAME, handleGameFinish);
@@ -584,6 +645,8 @@ const GamePage: React.FC = () => {
       socket.off(SocketEventType.CREATE_AGENDA, handleAgendaCreated);
       socket.off('task_created', handleTaskCreated); // 추가
       socket.off('overtime_created', handleOvertimeCreated); // 추가
+      socket.off('context_updated', handleContextUpdated); // 추가
+      socket.off('explanation_created', handleExplanationCreated); // 추가
       socket.off(SocketEventType.AGENDA_VOTE_BROADCAST, handleAgendaVoteBroadcast); // 추가
       socket.off(SocketEventType.AGENDA_VOTE_COMPLETED, handleAgendaVoteCompleted); // 추가
       socket.off(SocketEventType.FINISH_GAME, handleGameFinish);
@@ -639,16 +702,35 @@ const GamePage: React.FC = () => {
     // 선택한 옵션 저장
     setSelectedOption(optionId);
     
+                                    // selections에 저장
+                                setSelections(prev => {
+                                  const newSelections = {
+                                    ...prev,
+                                    agenda_selections: {
+                                      ...prev.agenda_selections,
+                                      [profile?.id || '']: optionId
+                                    }
+                                  };
+                                  
+                                  logGameProgress('아젠다 선택 저장', {
+                                    playerId: profile?.id,
+                                    selectedOptionId: optionId,
+                                    allAgendaSelections: newSelections.agenda_selections
+                                  });
+                                  
+                                  return newSelections;
+                                });
+    
     logGameProgress('아젠다 선택', { 
-      agendaId: currentAgenda.agenda_id,
-      agendaName: currentAgenda.agenda_name,
+      agendaId: currentAgenda.id,
+      agendaName: currentAgenda.name,
       selectedOptionId: optionId,
       agendaIndex: agendaIndex + 1,
       totalAgendas: agendaData.agenda_list.length
     });
     
     // 백엔드로 투표 결과 전송 (broadcast 포함)
-    voteAgenda(roomId, currentAgenda.agenda_id, optionId);
+    voteAgenda(roomId, currentAgenda.id, optionId);
     
     // 내가 투표했음을 표시
     setVotingPlayers(prev => {
@@ -848,7 +930,7 @@ const GamePage: React.FC = () => {
               <div className="ranking-list">
                 {sortedRankings.map((player, index) => (
                   <div
-                    key={player.player_id}
+                    key={`${player.id}-${player.rank}`}
                     className={`ranking-card rank-${player.rank}`}
                     style={{ animationDelay: `${index * 0.3 + 0.5}s` }} // 애니메이션 딜레이 조정
                   >
@@ -856,11 +938,11 @@ const GamePage: React.FC = () => {
                       <span className="rank-number">{player.rank}</span>
                       <span className="rank-medal">{getMedal(player.rank)}</span>
                       <div className="player-details">
-                        <span className="player-name">{player.player_name}</span>
-                        <span className="player-role">{player.player_role}</span>
+                        <span className="player-name">{player.name}</span>
+                        <span className="player-role">{player.role}</span>
                       </div>
                     </div>
-                    <p className="player-evaluation">"{player.player_evaluation}"</p>
+                    <p className="player-evaluation">"{player.evaluation}"</p>
                   </div>
                 ))}
               </div>
@@ -925,12 +1007,12 @@ const GamePage: React.FC = () => {
                     <div className="briefing-section">
                       <h4>나의 상태</h4>
                       <p style={{ whiteSpace: 'pre-line' }}>
-                        {(contextData.player_context_list?.[0]?.player_context?.["1"] || "플레이어 상태를 불러오는 중...")
+                        {(contextData.player_context_list?.[0]?.context?.["1"] || "플레이어 상태를 불러오는 중...")
                           .split(',')
                           .map((item: string, index: number) => (
                             <span key={index}>
                               {item.trim()}
-                              {index < (contextData.player_context_list?.[0]?.player_context?.["1"] || "").split(',').length - 1 && '\n'}
+                              {index < (contextData.player_context_list?.[0]?.context?.["1"] || "").split(',').length - 1 && '\n'}
                             </span>
                           ))}
                       </p>
@@ -1233,7 +1315,7 @@ const GamePage: React.FC = () => {
               
               // 현재 플레이어의 컨텍스트 찾기
               const myContext = contextData.player_context_list?.find(
-                (player: any) => player.player_id === profile?.id
+                (player: any) => player.id === profile?.id
               );
               
               return (
@@ -1285,7 +1367,7 @@ const GamePage: React.FC = () => {
                           lineHeight: '1.6',
                           margin: 0
                         }}>
-                          {JSON.stringify(myContext.player_context, null, 2)}
+                          {JSON.stringify(myContext.context, null, 2)}
                         </pre>
                       </div>
                     </div>
@@ -1338,7 +1420,7 @@ const GamePage: React.FC = () => {
 
                   {/* 안건 헤더 */}
                   <div className="agenda-header">
-                    <h3 className="agenda-title">{currentAgenda.agenda_name}</h3>
+                    <h3 className="agenda-title">{currentAgenda.name}</h3>
                     <div className="agenda-progress">
                       <span>진행 상황: {agendaIndex + 1} / {agendaData.agenda_list.length}</span>
                       {selectedOption && (
@@ -1352,15 +1434,15 @@ const GamePage: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  <p className="workspace-prompt">{currentAgenda.agenda_description}</p>
+                  <p className="workspace-prompt">{currentAgenda.description}</p>
                   
                   {/* 선택지 목록 */}
                   <div className="agenda-options-list">
-                    {currentAgenda.agenda_options?.map((option: any) => (
+                    {currentAgenda.options?.map((option: any) => (
                       <div
-                        key={option.agenda_option_id}
+                        key={option.id}
                         className="option-card agenda-option"
-                        onClick={() => handleAgendaOptionSelect(option.agenda_option_id)}
+                        onClick={() => handleAgendaOptionSelect(option.id)}
                         style={{
                           opacity: selectedOption ? 0.6 : 1,
                           cursor: selectedOption ? 'not-allowed' : 'pointer'
@@ -1368,10 +1450,10 @@ const GamePage: React.FC = () => {
                       >
                         <div className="option-icon">{option.icon}</div>
                         <div className="option-content">
-                          <h4>{option.agenda_option_text}</h4>
-                          <ImpactSummaryDisplay text={option.agenda_option_impact_summary} />
+                          <h4>{option.text}</h4>
+                          <ImpactSummaryDisplay text={option.impact_summary} />
                         </div>
-                        {selectedOption === option.agenda_option_id && (
+                        {selectedOption === option.id && (
                           <div className="selected-badge">✅ 선택됨</div>
                         )}
                       </div>
@@ -1482,7 +1564,7 @@ const GamePage: React.FC = () => {
               
               const currentAgenda = agendaData.agenda_list[agendaIndex];
               const nextAgendaExists = agendaIndex < agendaData.agenda_list.length - 1;
-              const selectedOpt = currentAgenda.agenda_options?.find((o: any) => o.agenda_option_id === selectedOption);
+              const selectedOpt = currentAgenda.options?.find((o: any) => o.id === selectedOption);
               return (
                 <div className="workspace-agenda result new-design">
                   <div className="gm-note">
@@ -1491,7 +1573,7 @@ const GamePage: React.FC = () => {
                   </div>
 
                   <div className="agenda-header">
-                    <h3 className="agenda-title">{currentAgenda.agenda_name}</h3>
+                    <h3 className="agenda-title">{currentAgenda.name}</h3>
                     <div className="agenda-progress">
                       <span>진행 상황: {agendaIndex + 1} / {agendaData.agenda_list.length}</span>
                     </div>
@@ -1499,18 +1581,18 @@ const GamePage: React.FC = () => {
                       {voteResults ? '투표 완료!' : '투표 진행 중...'}
                     </div>
                   </div>
-                  <p className="workspace-prompt">'{selectedOpt?.agenda_option_text || '선택된 옵션'}' 안건이 채택되었습니다.</p>
+                  <p className="workspace-prompt">'{selectedOpt?.text || '선택된 옵션'}' 안건이 채택되었습니다.</p>
                   <div className="agenda-options-list">
-                    {currentAgenda.agenda_options?.map((option: any) => (
+                    {currentAgenda.options?.map((option: any) => (
                       <div
-                        key={option.agenda_option_id}
-                        className={`option-card agenda-option ${selectedOption === option.agenda_option_id ? 'selected' : 'not-selected'}`}
+                        key={option.id}
+                        className={`option-card agenda-option ${selectedOption === option.id ? 'selected' : 'not-selected'}`}
                       >
-                        {selectedOption === option.agenda_option_id && <div className="selected-badge">✅ 선택됨</div>}
+                        {selectedOption === option.id && <div className="selected-badge">✅ 선택됨</div>}
                         <div className="option-icon">{option.icon}</div>
                         <div className="option-content">
-                          <h4>{option.agenda_option_text}</h4>
-                          <ImpactSummaryDisplay text={option.agenda_option_impact_summary} />
+                          <h4>{option.text}</h4>
+                          <ImpactSummaryDisplay text={option.impact_summary} />
                         </div>
                       </div>
                     ))}
@@ -1632,30 +1714,52 @@ const GamePage: React.FC = () => {
                       
                       return (
                         <div 
-                          key={task.task_id} 
+                          key={task.id} 
                           className={`task-card ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`}
                         >
                           <div className="task-card-header">
-                            <h4 className="task-name">{task.task_name}</h4>
+                            <h4 className="task-name">{task.name}</h4>
                             {isCompleted && <span className="completed-badge">✓ 완료</span>}
                           </div>
                           {isActive && (
                             <div className="task-card-content">
-                              <p className="task-description">{task.task_description}</p>
+                              <p className="task-description">{task.description}</p>
                               <div className="task-options">
-                                {task.task_options?.map((option: any) => (
+                                {task.options?.map((option: any) => (
                                   <button 
-                                    key={option.task_option_id} 
+                                    key={option.id} 
                                     className="task-option-button"
                                     onClick={() => {
                                       // 선택한 옵션 저장
-                                      setSelectedOption(option.task_option_id);
+                                      setSelectedOption(option.id);
+                                      
+                                      // selections에 저장
+                                      setSelections(prev => {
+                                        const newSelections = {
+                                          ...prev,
+                                          task_selections: {
+                                            ...prev.task_selections,
+                                            [profile?.id || '']: [
+                                              ...(prev.task_selections[profile?.id || ''] || []),
+                                              option.id
+                                            ]
+                                          }
+                                        };
+                                        
+                                        logGameProgress('태스크 선택 저장', {
+                                          playerId: profile?.id,
+                                          selectedOptionId: option.id,
+                                          allTaskSelections: newSelections.task_selections
+                                        });
+                                        
+                                        return newSelections;
+                                      });
                                       
                                       logGameProgress('업무 선택', {
-                                        taskId: task.task_id,
-                                        taskName: task.task_name,
-                                        selectedOptionId: option.task_option_id,
-                                        selectedOptionText: option.task_option_text,
+                                        taskId: task.id,
+                                        taskName: task.name,
+                                        selectedOptionId: option.id,
+                                        selectedOptionText: option.text,
                                         currentTaskIndex: workTaskIndex + 1,
                                         totalTasks: playerTasks.length
                                       });
@@ -1689,8 +1793,8 @@ const GamePage: React.FC = () => {
                                       }
                                     }}
                                   >
-                                    <span className="option-text">{option.task_option_text}</span>
-                                    <span className="option-summary">{option.task_option_impact_summary}</span>
+                                    <span className="option-text">{option.text}</span>
+                                    <span className="option-summary">{option.impact_summary}</span>
                                   </button>
                                 ))}
                               </div>
@@ -1738,8 +1842,8 @@ const GamePage: React.FC = () => {
                   getGameProgress(roomId);
                   setOvertimeLoading(true);
                 }
-                
-                return (
+
+              return (
                   <div style={{ 
                     textAlign: 'center',
                     padding: '40px',
@@ -1775,46 +1879,202 @@ const GamePage: React.FC = () => {
                   </div>
                   <div className="overtime-list">
                     {playerOvertimeTasks.map((task: any, index: number) => (
-                      <div key={task.overtime_task_id} className="overtime-card">
-                        <div className="overtime-card-header">
-                          <span className="task-type-badge">
-                            {task.overtime_task_type === 'overtime' ? '🌙 야근' : '☀️ 휴식'}
-                          </span>
-                          <h4>{task.overtime_task_name}</h4>
-                        </div>
-                        <p className="overtime-description">{task.overtime_task_description}</p>
-                        <div className="overtime-options">
-                          {task.overtime_task_options?.map((option: any) => (
-                            <button 
-                              key={option.overtime_task_option_id} 
-                              className="overtime-option-button"
-                              onClick={() => {
+                      <div key={task.id} className="overtime-card">
+                    <div className="overtime-card-header">
+                      <span className="task-type-badge">
+                        {task.type === 'overtime' ? '🌙 야근' : '☀️ 휴식'}
+                      </span>
+                          <h4>{task.name}</h4>
+                    </div>
+                    <p className="overtime-description">{task.description}</p>
+                    <div className="overtime-options">
+                          {task.options?.map((option: any) => (
+                        <button 
+                          key={option.id} 
+                          className="overtime-option-button"
+                          onClick={() => {
                                 // 선택한 옵션 저장
-                                setSelectedOption(option.overtime_task_option_id);
+                                setSelectedOption(option.id);
                                 
-                                logGameProgress('야근/휴식 선택', {
-                                  taskId: task.overtime_task_id,
-                                  taskName: task.overtime_task_name,
-                                  taskType: task.overtime_task_type,
-                                  selectedOptionId: option.overtime_task_option_id,
-                                  selectedOptionText: option.overtime_task_option_text
+                                // selections에 저장
+                                setSelections(prev => {
+                                  const newSelections = {
+                                    ...prev,
+                                    overtime_selections: {
+                                      ...prev.overtime_selections,
+                                      [profile?.id || '']: [
+                                        ...(prev.overtime_selections[profile?.id || ''] || []),
+                                        option.id
+                                      ]
+                                    }
+                                  };
+                                  
+                                  logGameProgress('오버타임 선택 저장', {
+                                    playerId: profile?.id,
+                                    selectedOptionId: option.id,
+                                    allOvertimeSelections: newSelections.overtime_selections
+                                  });
+                                  
+                                  return newSelections;
                                 });
                                 
-                                // 게임 결과 생성 요청
-                                if (socket && roomId) {
-                                  calculateResult(roomId);
-                                  setResultLoading(true);
+                                logGameProgress('야근/휴식 선택', {
+                                  taskId: task.id,
+                                  taskName: task.name,
+                                  taskType: task.type,
+                                  selectedOptionId: option.id,
+                                  selectedOptionText: option.text
+                                });
+                                
+                                // 선택을 먼저 저장한 후 완료 여부 확인
+                                const updatedSelections = {
+                                  ...selections,
+                                  overtime_selections: {
+                                    ...selections.overtime_selections,
+                                    [profile?.id || '']: [
+                                      ...(selections.overtime_selections[profile?.id || ''] || []),
+                                      option.id
+                                    ]
+                                  }
+                                };
+                                
+                                // selections 상태 업데이트
+                                setSelections(updatedSelections);
+                                
+                                // 모든 선택이 완료되었는지 확인 (업데이트된 selections 기준)
+                                const hasAgendaSelection = updatedSelections.agenda_selections[profile?.id || ''];
+                                const hasTaskSelections = updatedSelections.task_selections[profile?.id || ''] && 
+                                  updatedSelections.task_selections[profile?.id || ''].length > 0;
+                                const hasOvertimeSelections = updatedSelections.overtime_selections[profile?.id || ''] && 
+                                  updatedSelections.overtime_selections[profile?.id || ''].length > 0;
+                                
+                                const allComplete = hasAgendaSelection && hasTaskSelections && hasOvertimeSelections;
+                                
+                                // 모든 선택이 완료되었을 때만 updateContext 실행
+                                if (socket && roomId && allComplete) {
+                                  const currentSelections = {
+                                    agenda_selections: updatedSelections.agenda_selections,
+                                    task_selections: updatedSelections.task_selections,
+                                    overtime_selections: updatedSelections.overtime_selections
+                                  };
+                                  
+                                  updateContext(roomId, currentSelections);
+                                  
+                                  logGameProgress('컨텍스트 업데이트 요청', {
+                                    agendaCount: Object.keys(currentSelections.agenda_selections).length,
+                                    taskCount: Object.keys(currentSelections.task_selections).length,
+                                    overtimeCount: Object.keys(currentSelections.overtime_selections).length,
+                                    allComplete: true
+                                  });
+                                  
+                                  // context_updated 이벤트를 기다림 (handleContextUpdated에서 explanation 호출)
+                                } else {
+                                  logGameProgress('선택 미완료', {
+                                    hasAgenda: !!selections.agenda_selections[profile?.id || ''],
+                                    hasTask: !!(selections.task_selections[profile?.id || ''] && 
+                                      selections.task_selections[profile?.id || ''].length > 0),
+                                    hasOvertime: !!(selections.overtime_selections[profile?.id || ''] && 
+                                      selections.overtime_selections[profile?.id || ''].length > 0)
+                                  });
                                 }
-                                setWorkspaceState('game_result');
-                              }}
-                            >
-                              <span className="option-text">{option.overtime_task_option_text}</span>
-                              <span className="option-summary">{option.overtime_task_option_impact_summary}</span>
-                            </button>
-                          ))}
-                        </div>
+                          }}
+                        >
+                          <span className="option-text">{option.text}</span>
+                          <span className="option-summary">{option.impact_summary}</span>
+                        </button>
+                      ))}
+                    </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ------------------------------------- */}
+            {/* --- 상태 3: Explanation (설명 생성) --- */}
+            {/* ------------------------------------- */}
+            {workspaceState === 'explanation' && (() => {
+              if (explanationLoading) {
+                return (
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    padding: '40px',
+                    fontSize: '18px',
+                    color: '#666'
+                  }}>
+                    <div style={{ 
+                      width: '24px', 
+                      height: '24px', 
+                      border: '3px solid #f3f3f3', 
+                      borderTop: '3px solid #2196f3', 
+                      borderRadius: '50%', 
+                      animation: 'spin 1s linear infinite',
+                      marginRight: '15px'
+                    }}></div>
+                    설명을 생성하는 중...
+                  </div>
+                );
+              }
+              
+              if (!explanationData) {
+                return (
+                  <div style={{ 
+                    textAlign: 'center',
+                    padding: '40px',
+                    fontSize: '18px',
+                    color: '#666'
+                  }}>
+                    설명 데이터를 불러오는 중...
+                  </div>
+                );
+              }
+              
+              return (
+                <div className="workspace-explanation">
+                  <div className="explanation-header">
+                    <h3>📖 게임 상황 설명</h3>
+                    <p>현재까지의 게임 진행 상황에 대한 설명입니다.</p>
+                  </div>
+                  <div className="explanation-content">
+                    <div style={{ 
+                      padding: '20px',
+                      backgroundColor: '#f8f9fa',
+                      borderRadius: '8px',
+                      border: '1px solid #e9ecef',
+                      whiteSpace: 'pre-wrap',
+                      lineHeight: '1.6',
+                      fontSize: '16px'
+                    }}>
+                      {explanationData.explanation}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'center', marginTop: '20px' }}>
+                    <button
+                      className="next-step-button"
+                      onClick={() => {
+                        // 결과 계산 요청
+                        if (socket && roomId) {
+                          calculateResult(roomId);
+                          setResultLoading(true);
+                        }
+                        setWorkspaceState('game_result');
+                      }}
+                      style={{
+                        backgroundColor: '#28a745',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '12px 24px',
+                        fontSize: '16px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      🏆 결과 확인하기
+                    </button>
                   </div>
                 </div>
               );
@@ -1882,6 +2142,7 @@ const GamePage: React.FC = () => {
               <button onClick={() => { setAgendaIndex(0); setWorkspaceState('agenda'); }}>Agenda</button>
               <button onClick={() => { setWorkTaskIndex(0); setWorkspaceState('work'); }}>Work</button>
               <button onClick={() => setWorkspaceState('overtime')}>Overtime</button>
+              <button onClick={() => setWorkspaceState('explanation')}>Explanation</button>
               <button onClick={() => setWorkspaceState('game_result')}>Result</button>
             </div>
           </div>

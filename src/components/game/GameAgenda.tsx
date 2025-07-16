@@ -60,9 +60,9 @@ const GameAgenda: React.FC<GameAgendaProps> = ({ onCreateAgenda, companyContext,
               border: '1px solid #e1bee7'
             }}>
               <h4 style={{ margin: '0 0 10px 0', color: '#7b1fa2' }}>
-                {player.player_name} ({player.player_role})
+                {player.name} ({player.role})
               </h4>
-              {Object.entries(player.player_context).map(([key, value]) => (
+              {Object.entries(player.context).map(([key, value]) => (
                 <div key={key} style={{ marginBottom: '5px', fontSize: '14px' }}>
                   <strong>{key}:</strong> {value}
                 </div>

@@ -22,68 +22,67 @@ export type GamePhase =
 
 // 플레이어 컨텍스트 타입
 export interface PlayerContext {
-  player_id: string;
-  player_name: string;
-  player_role: string;
-  player_context: Record<string, string>;
+  id: string;
+  name: string;
+  role: string;
+  context: Record<string, string>;
 }
 
 // 아젠다 관련 타입
 export interface AgendaOption {
-  agenda_option_id: string;
-  agenda_option_text: string;
-  agenda_option_impact_summary: string;
-  icon: string; // 아이콘 필드 추가
+  id: string;
+  text: string;
+  impact_summary: string;
 }
 
 export interface Agenda {
-  agenda_id: string;
-  agenda_name: string;
-  agenda_description: string;
-  agenda_options: AgendaOption[];
+  id: string;
+  name: string;
+  description: string;
+  options: AgendaOption[];
 }
 
 export interface AgendaSelection {
-  agenda_id: string;
+  id: string;
   selected_option_id: string;
 }
 
 // 태스크 관련 타입
 export interface TaskOption {
-  task_option_id: string;
-  task_option_text: string;
-  task_option_impact_summary: string;
+  id: string;
+  text: string;
+  impact_summary: string;
 }
 
 export interface Task {
-  task_id: string;
-  task_name: string;
-  task_description: string;
-  task_options: TaskOption[];
+  id: string;
+  name: string;
+  description: string;
+  options: TaskOption[];
 }
 
 export interface TaskSelection {
-  task_id: string;
+  id: string;
   selected_option_id: string;
 }
 
 // 오버타임 관련 타입
 export interface OvertimeTaskOption {
-  overtime_task_option_id: string;
-  overtime_task_option_text: string;
-  overtime_task_option_impact_summary: string;
+  id: string;
+  text: string;
+  impact_summary: string;
 }
 
 export interface OvertimeTask {
-  overtime_task_id: string;
-  overtime_task_type: 'overtime' | 'rest';
-  overtime_task_name: string;
-  overtime_task_description: string;
-  overtime_task_options: OvertimeTaskOption[];
+  id: string;
+  type: string;
+  name: string;
+  description: string;
+  options: OvertimeTaskOption[];
 }
 
 export interface OvertimeSelection {
-  task_id: string;
+  id: string;
   selected_option_id: string;
 }
 

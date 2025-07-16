@@ -52,15 +52,15 @@ const GameOvertime: React.FC<GameOvertimeProps> = ({ onCreateOvertime, taskList,
                   border: '1px solid #ddd'
                 }}>
                   <h5 style={{ margin: '0 0 8px 0', color: '#2e7d32' }}>
-                    {task.task_name}
+                    {task.name}
                   </h5>
                   <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#666' }}>
-                    {task.task_description}
+                    {task.description}
                   </p>
-                  {task.task_options && task.task_options.length > 0 && (
+                  {task.options && task.options.length > 0 && (
                     <div>
                       <strong>옵션:</strong>
-                      {task.task_options.map((option, optionIndex) => (
+                      {task.options.map((option, optionIndex) => (
                         <div key={optionIndex} style={{ 
                           margin: '5px 0', 
                           padding: '6px', 
@@ -68,9 +68,9 @@ const GameOvertime: React.FC<GameOvertimeProps> = ({ onCreateOvertime, taskList,
                           borderRadius: '3px',
                           fontSize: '12px'
                         }}>
-                          <div><strong>{option.task_option_text}</strong></div>
+                          <div><strong>{option.text}</strong></div>
                           <div style={{ color: '#666', fontSize: '11px' }}>
-                            {option.task_option_impact_summary}
+                            {option.impact_summary}
                           </div>
                         </div>
                       ))}

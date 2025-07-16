@@ -34,7 +34,7 @@ const GamePlaying: React.FC<GamePlayingProps> = ({
       agenda_selections: {
         ...prev.agenda_selections,
         [playerId]: {
-          agenda_id: agendaId,
+          id: agendaId,
           selected_option_id: optionId
         }
       }
@@ -44,14 +44,14 @@ const GamePlaying: React.FC<GamePlayingProps> = ({
   const handleTaskSelection = (playerId: string, taskId: string, optionId: string) => {
     setSelections(prev => {
       const currentTasks = prev.task_selections[playerId] || [];
-      const existingIndex = currentTasks.findIndex(task => task.task_id === taskId);
+      const existingIndex = currentTasks.findIndex(task => task.id === taskId);
       
       let newTasks;
       if (existingIndex >= 0) {
         newTasks = [...currentTasks];
-        newTasks[existingIndex] = { task_id: taskId, selected_option_id: optionId };
+        newTasks[existingIndex] = { id: taskId, selected_option_id: optionId };
       } else {
-        newTasks = [...currentTasks, { task_id: taskId, selected_option_id: optionId }];
+        newTasks = [...currentTasks, { id: taskId, selected_option_id: optionId }];
       }
       
       return {
@@ -67,14 +67,14 @@ const GamePlaying: React.FC<GamePlayingProps> = ({
   const handleOvertimeSelection = (playerId: string, taskId: string, optionId: string) => {
     setSelections(prev => {
       const currentOvertimes = prev.overtime_selections[playerId] || [];
-      const existingIndex = currentOvertimes.findIndex(overtime => overtime.task_id === taskId);
+      const existingIndex = currentOvertimes.findIndex(overtime => overtime.id === taskId);
       
       let newOvertimes;
       if (existingIndex >= 0) {
         newOvertimes = [...currentOvertimes];
-        newOvertimes[existingIndex] = { task_id: taskId, selected_option_id: optionId };
+        newOvertimes[existingIndex] = { id: taskId, selected_option_id: optionId };
       } else {
-        newOvertimes = [...currentOvertimes, { task_id: taskId, selected_option_id: optionId }];
+        newOvertimes = [...currentOvertimes, { id: taskId, selected_option_id: optionId }];
       }
       
       return {
@@ -92,7 +92,7 @@ const GamePlaying: React.FC<GamePlayingProps> = ({
     if (!gameState.player_context_list) return false;
     
     return gameState.player_context_list.every(player => {
-      const playerId = player.player_id;
+      const playerId = player.id;
       const hasAgendaSelection = selections.agenda_selections[playerId];
       const hasTaskSelections = selections.task_selections[playerId] && 
         selections.task_selections[playerId].length > 0;
@@ -114,20 +114,20 @@ const GamePlaying: React.FC<GamePlayingProps> = ({
           <div key={index} style={{ 
             marginBottom: '20px', 
             padding: '15px', 
-            backgroundColor: currentPlayer === player.player_id ? '#e3f2fd' : '#f8f9fa',
+            backgroundColor: currentPlayer === player.id ? '#e3f2fd' : '#f8f9fa',
             borderRadius: '8px',
             border: '1px solid #dee2e6',
             cursor: 'pointer'
           }}
-          onClick={() => setCurrentPlayer(player.player_id)}
+          onClick={() => setCurrentPlayer(player.id)}
           >
             <h4 style={{ margin: '0 0 10px 0', color: '#1976d2' }}>
-              {player.player_name} ({player.player_role})
+              {player.name} ({player.role})
             </h4>
             <div style={{ fontSize: '14px', color: '#666' }}>
-              아젠다: {selections.agenda_selections[player.player_id] ? '✅' : '❌'} | 
-              태스크: {selections.task_selections[player.player_id]?.length || 0}개 | 
-              오버타임: {selections.overtime_selections[player.player_id]?.length || 0}개
+              아젠다: {selections.agenda_selections[player.id] ? '✅' : '❌'} | 
+              태스크: {selections.task_selections[player.id]?.length || 0}개 | 
+              오버타임: {selections.overtime_selections[player.id]?.length || 0}개
             </div>
           </div>
         ))}
@@ -136,7 +136,7 @@ const GamePlaying: React.FC<GamePlayingProps> = ({
       {/* 선택된 플레이어의 선택 UI */}
       {currentPlayer && (
         <div style={{ marginBottom: '30px' }}>
-          <h3>📋 {gameState.player_context_list?.find(p => p.player_id === currentPlayer)?.player_name}의 선택</h3>
+          <h3>📋 {gameState.player_context_list?.find(p => p.id === currentPlayer)?.name}의 선택</h3>
           
           {/* 아젠다 선택 */}
           {gameState.agenda_list && gameState.agenda_list.length > 0 && (
@@ -144,10 +144,10 @@ const GamePlaying: React.FC<GamePlayingProps> = ({
               <h4>📋 아젠다 선택</h4>
               {gameState.agenda_list.map((agenda, index) => (
                 <div key={index} style={{ marginBottom: '15px' }}>
-                  <h5>{agenda.agenda_name}</h5>
-                  <p style={{ fontSize: '14px', color: '#666' }}>{agenda.agenda_description}</p>
+                  <h5>{agenda.name}</h5>
+                  <p style={{ fontSize: '14px', color: '#666' }}>{agenda.description}</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {agenda.agenda_options.map((option, optionIndex) => (
+                    {agenda.options.map((option, optionIndex) => (
                       <label key={optionIndex} style={{ 
                         display: 'flex', 
                         alignItems: 'center', 
@@ -155,19 +155,19 @@ const GamePlaying: React.FC<GamePlayingProps> = ({
                         border: '1px solid #ddd',
                         borderRadius: '4px',
                         cursor: 'pointer',
-                        backgroundColor: selections.agenda_selections[currentPlayer]?.selected_option_id === option.agenda_option_id ? '#e3f2fd' : '#fff'
+                        backgroundColor: selections.agenda_selections[currentPlayer]?.selected_option_id === option.id ? '#e3f2fd' : '#fff'
                       }}>
                         <input
                           type="radio"
                           name={`agenda-${currentPlayer}`}
-                          value={option.agenda_option_id}
-                          checked={selections.agenda_selections[currentPlayer]?.selected_option_id === option.agenda_option_id}
-                          onChange={() => handleAgendaSelection(currentPlayer, agenda.agenda_id, option.agenda_option_id)}
+                          value={option.id}
+                          checked={selections.agenda_selections[currentPlayer]?.selected_option_id === option.id}
+                          onChange={() => handleAgendaSelection(currentPlayer, agenda.id, option.id)}
                           style={{ marginRight: '8px' }}
                         />
                         <div>
-                          <div><strong>{option.agenda_option_text}</strong></div>
-                          <div style={{ fontSize: '12px', color: '#666' }}>{option.agenda_option_impact_summary}</div>
+                          <div><strong>{option.text}</strong></div>
+                          <div style={{ fontSize: '12px', color: '#666' }}>{option.impact_summary}</div>
                         </div>
                       </label>
                     ))}
@@ -183,10 +183,10 @@ const GamePlaying: React.FC<GamePlayingProps> = ({
               <h4>📋 태스크 선택</h4>
               {gameState.task_list[currentPlayer].map((task, index) => (
                 <div key={index} style={{ marginBottom: '15px' }}>
-                  <h5>{task.task_name}</h5>
-                  <p style={{ fontSize: '14px', color: '#666' }}>{task.task_description}</p>
+                  <h5>{task.name}</h5>
+                  <p style={{ fontSize: '14px', color: '#666' }}>{task.description}</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {task.task_options.map((option, optionIndex) => (
+                    {task.options.map((option, optionIndex) => (
                       <label key={optionIndex} style={{ 
                         display: 'flex', 
                         alignItems: 'center', 
@@ -194,19 +194,19 @@ const GamePlaying: React.FC<GamePlayingProps> = ({
                         border: '1px solid #ddd',
                         borderRadius: '4px',
                         cursor: 'pointer',
-                        backgroundColor: selections.task_selections[currentPlayer]?.find(t => t.task_id === task.task_id)?.selected_option_id === option.task_option_id ? '#e8f5e8' : '#fff'
+                        backgroundColor: selections.task_selections[currentPlayer]?.find(t => t.id === task.id)?.selected_option_id === option.id ? '#e8f5e8' : '#fff'
                       }}>
                         <input
                           type="radio"
-                          name={`task-${currentPlayer}-${task.task_id}`}
-                          value={option.task_option_id}
-                          checked={selections.task_selections[currentPlayer]?.find(t => t.task_id === task.task_id)?.selected_option_id === option.task_option_id}
-                          onChange={() => handleTaskSelection(currentPlayer, task.task_id, option.task_option_id)}
+                          name={`task-${currentPlayer}-${task.id}`}
+                          value={option.id}
+                          checked={selections.task_selections[currentPlayer]?.find(t => t.id === task.id)?.selected_option_id === option.id}
+                          onChange={() => handleTaskSelection(currentPlayer, task.id, option.id)}
                           style={{ marginRight: '8px' }}
                         />
                         <div>
-                          <div><strong>{option.task_option_text}</strong></div>
-                          <div style={{ fontSize: '12px', color: '#666' }}>{option.task_option_impact_summary}</div>
+                          <div><strong>{option.text}</strong></div>
+                          <div style={{ fontSize: '12px', color: '#666' }}>{option.impact_summary}</div>
                         </div>
                       </label>
                     ))}
@@ -222,10 +222,10 @@ const GamePlaying: React.FC<GamePlayingProps> = ({
               <h4>⏰ 오버타임 선택</h4>
               {gameState.overtime_task_list[currentPlayer].map((overtimeTask, index) => (
                 <div key={index} style={{ marginBottom: '15px' }}>
-                  <h5>{overtimeTask.overtime_task_name} ({overtimeTask.overtime_task_type})</h5>
-                  <p style={{ fontSize: '14px', color: '#666' }}>{overtimeTask.overtime_task_description}</p>
+                  <h5>{overtimeTask.name} ({overtimeTask.type})</h5>
+                  <p style={{ fontSize: '14px', color: '#666' }}>{overtimeTask.description}</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {overtimeTask.overtime_task_options.map((option, optionIndex) => (
+                    {overtimeTask.options.map((option, optionIndex) => (
                       <label key={optionIndex} style={{ 
                         display: 'flex', 
                         alignItems: 'center', 
@@ -233,19 +233,19 @@ const GamePlaying: React.FC<GamePlayingProps> = ({
                         border: '1px solid #ddd',
                         borderRadius: '4px',
                         cursor: 'pointer',
-                        backgroundColor: selections.overtime_selections[currentPlayer]?.find(o => o.task_id === overtimeTask.overtime_task_id)?.selected_option_id === option.overtime_task_option_id ? '#fff3e0' : '#fff'
+                        backgroundColor: selections.overtime_selections[currentPlayer]?.find(o => o.id === overtimeTask.id)?.selected_option_id === option.id ? '#fff3e0' : '#fff'
                       }}>
                         <input
                           type="radio"
-                          name={`overtime-${currentPlayer}-${overtimeTask.overtime_task_id}`}
-                          value={option.overtime_task_option_id}
-                          checked={selections.overtime_selections[currentPlayer]?.find(o => o.task_id === overtimeTask.overtime_task_id)?.selected_option_id === option.overtime_task_option_id}
-                          onChange={() => handleOvertimeSelection(currentPlayer, overtimeTask.overtime_task_id, option.overtime_task_option_id)}
+                          name={`overtime-${currentPlayer}-${overtimeTask.id}`}
+                          value={option.id}
+                          checked={selections.overtime_selections[currentPlayer]?.find(o => o.id === overtimeTask.id)?.selected_option_id === option.id}
+                          onChange={() => handleOvertimeSelection(currentPlayer, overtimeTask.id, option.id)}
                           style={{ marginRight: '8px' }}
                         />
                         <div>
-                          <div><strong>{option.overtime_task_option_text}</strong></div>
-                          <div style={{ fontSize: '12px', color: '#666' }}>{option.overtime_task_option_impact_summary}</div>
+                          <div><strong>{option.text}</strong></div>
+                          <div style={{ fontSize: '12px', color: '#666' }}>{option.impact_summary}</div>
                         </div>
                       </label>
                     ))}
