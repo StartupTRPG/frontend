@@ -577,6 +577,86 @@ class ApiService {
     );
   }
 
+  // Game APIs
+  async createGame(accessToken: string, roomId: string, players: Array<{id: string, name: string}>): Promise<ApiResponse<any>> {
+    return this.request<ApiResponse<any>>('/game/create', {
+      method: 'POST',
+      body: JSON.stringify({
+        room_id: roomId,
+        players: players
+      }),
+      ...this.withAuthHeader({}, accessToken),
+    });
+  }
+
+  async createContext(accessToken: string, roomId: string, maxTurn: number, story: string): Promise<ApiResponse<any>> {
+    return this.request<ApiResponse<any>>(`/game/${roomId}/context`, {
+      method: 'POST',
+      body: JSON.stringify({
+        max_turn: maxTurn,
+        story: story
+      }),
+      ...this.withAuthHeader({}, accessToken),
+    });
+  }
+
+  async createAgenda(accessToken: string, roomId: string): Promise<ApiResponse<any>> {
+    return this.request<ApiResponse<any>>(`/game/${roomId}/agenda`, {
+      method: 'POST',
+      ...this.withAuthHeader({}, accessToken),
+    });
+  }
+
+  async createTask(accessToken: string, roomId: string): Promise<ApiResponse<any>> {
+    return this.request<ApiResponse<any>>(`/game/${roomId}/task`, {
+      method: 'POST',
+      ...this.withAuthHeader({}, accessToken),
+    });
+  }
+
+  async createOvertime(accessToken: string, roomId: string): Promise<ApiResponse<any>> {
+    return this.request<ApiResponse<any>>(`/game/${roomId}/overtime`, {
+      method: 'POST',
+      ...this.withAuthHeader({}, accessToken),
+    });
+  }
+
+  async updateContext(accessToken: string, roomId: string, agendaSelections: any, taskSelections: any, overtimeSelections: any): Promise<ApiResponse<any>> {
+    return this.request<ApiResponse<any>>(`/game/${roomId}/context-update`, {
+      method: 'POST',
+      body: JSON.stringify({
+        agenda_selections: agendaSelections,
+        task_selections: taskSelections,
+        overtime_selections: overtimeSelections
+      }),
+      ...this.withAuthHeader({}, accessToken),
+    });
+  }
+
+  async createExplanation(accessToken: string, roomId: string): Promise<ApiResponse<any>> {
+    return this.request<ApiResponse<any>>(`/game/${roomId}/explanation`, {
+      method: 'POST',
+      ...this.withAuthHeader({}, accessToken),
+    });
+  }
+
+  async calculateResult(accessToken: string, roomId: string): Promise<ApiResponse<any>> {
+    return this.request<ApiResponse<any>>(`/game/${roomId}/result`, {
+      method: 'POST',
+      ...this.withAuthHeader({}, accessToken),
+    });
+  }
+
+  async finishGame(accessToken: string, roomId: string): Promise<ApiResponse<any>> {
+    return this.request<ApiResponse<any>>('/game/finish', {
+      method: 'POST',
+      body: JSON.stringify({
+        room_id: roomId
+      }),
+      ...this.withAuthHeader({}, accessToken),
+    });
+  }
+
   // Health Check
   async healthCheck(): Promise<any> {
     return this.request<any>('/health', {

@@ -30,6 +30,9 @@ export enum SocketEventType {
   CREATE_GAME = "create_game",
   CREATE_CONTEXT = "create_context",
   CREATE_AGENDA = "create_agenda",
+  VOTE_AGENDA = "vote_agenda", // 추가
+  AGENDA_VOTE_BROADCAST = "agenda_vote_broadcast", // 추가
+  AGENDA_VOTE_COMPLETED = "agenda_vote_completed", // 추가
   CREATE_TASK = "create_task",
   CREATE_OVERTIME = "create_overtime",
   UPDATE_CONTEXT = "update_context",
@@ -100,4 +103,40 @@ export interface ReadyResponse {
   profile_id: string;
   ready: boolean;
   all_ready: boolean;
+} 
+
+// 아젠다 투표 관련 인터페이스 추가
+export interface VoteAgendaRequest {
+  room_id: string;
+  agenda_id: string;
+  selected_option_id: string;
+}
+
+export interface VoteAgendaResponse {
+  room_id: string;
+  agenda_id: string;
+  selected_option_id: string;
+  player_id: string;
+  player_name: string;
+  success: boolean;
+}
+
+export interface AgendaVoteBroadcastResponse {
+  room_id: string;
+  agenda_id: string;
+  player_id: string;
+  player_name: string;
+  selected_option_id: string;
+  timestamp: string;
+}
+
+export interface AgendaVoteCompletedResponse {
+  room_id: string;
+  agenda_id: string;
+  winning_option_id: string;
+  vote_results: {
+    option_id: string;
+    votes: number;
+    voters: string[];
+  }[];
 } 

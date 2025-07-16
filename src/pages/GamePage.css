@@ -1248,3 +1248,345 @@
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 } 
+
+/* 투표 현황 스타일 */
+.voting-status {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.voting-status h4 {
+  margin: 0 0 15px 0;
+  color: #495057;
+  font-size: 16px;
+}
+
+.voting-players {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.voting-player {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background-color: white;
+  border-radius: 20px;
+  border: 1px solid #dee2e6;
+  font-size: 14px;
+}
+
+.player-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.player-name {
+  font-weight: 500;
+  color: #495057;
+}
+
+.voting-status-icon {
+  font-size: 16px;
+  margin-left: 4px;
+}
+
+/* 선택된 옵션 배지 */
+.selected-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background-color: #28a745;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/* 옵션 카드 포지션 조정 */
+.option-card.agenda-option {
+  position: relative;
+}
+
+/* 투표 완료 시 옵션 비활성화 */
+.option-card.agenda-option.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 투표 결과 스타일 */
+.vote-results {
+  margin: 20px 0;
+  padding: 15px;
+  background-color: #e3f2fd;
+  border-radius: 8px;
+  border: 1px solid #bbdefb;
+}
+
+.vote-results h4 {
+  margin: 0 0 15px 0;
+  color: #1976d2;
+  font-size: 16px;
+}
+
+.vote-summary {
+  margin-bottom: 15px;
+}
+
+.vote-summary p {
+  margin: 0 0 10px 0;
+  font-weight: bold;
+  color: #1976d2;
+}
+
+.vote-result-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #e1f5fe;
+}
+
+.vote-result-item:last-child {
+  border-bottom: none;
+}
+
+.vote-result-item span:first-child {
+  font-weight: 500;
+  color: #424242;
+}
+
+.vote-result-item span:last-child {
+  font-weight: bold;
+  color: #1976d2;
+  background-color: #e3f2fd;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+} 
+
+/* 아젠다 진행 상황 스타일 */
+.agenda-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  background-color: #e3f2fd;
+  border-radius: 6px;
+  border: 1px solid #bbdefb;
+}
+
+.agenda-progress span {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1976d2;
+}
+
+/* 아젠다 결과 정보 스타일 */
+.agenda-result-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background-color: #e8f5e8;
+  border-radius: 6px;
+  border: 1px solid #c8e6c9;
+  font-size: 14px;
+  font-weight: 500;
+  color: #2e7d32;
+}
+
+/* 다음 버튼 스타일 개선 */
+.next-step-button {
+  background-color: #28a745 !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 8px !important;
+  padding: 12px 24px !important;
+  font-size: 16px !important;
+  font-weight: bold !important;
+  cursor: pointer !important;
+  margin-top: 20px !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.next-step-button:hover {
+  background-color: #218838 !important;
+}
+
+.next-step-button:active {
+  background-color: #1e7e34 !important;
+}
+
+/* 아젠다 헤더 개선 */
+.agenda-header {
+  margin-bottom: 20px;
+}
+
+.agenda-title {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 24px;
+}
+
+/* 타이머 컨테이너 스타일 */
+.timer-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.timer-container span {
+  font-size: 14px;
+  color: #666;
+}
+
+.timer-progress-bar {
+  flex: 1;
+  height: 6px;
+  background-color: #e9ecef;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.timer-progress {
+  height: 100%;
+  background-color: #ffc107;
+  border-radius: 3px;
+  animation: timer-progress 60s linear infinite;
+}
+
+@keyframes timer-progress {
+  0% { width: 100%; }
+  100% { width: 0%; }
+} 
+
+/* 투표 상태 텍스트 */
+.voting-status-text {
+  margin-left: 15px;
+  padding: 4px 8px;
+  background-color: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #856404;
+  font-weight: 500;
+}
+
+/* 아젠다 진행 상황 개선 */
+.agenda-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  background-color: #e3f2fd;
+  border-radius: 6px;
+  border: 1px solid #bbdefb;
+  flex-wrap: wrap;
+}
+
+/* 다음 버튼 강조 */
+.next-step-button {
+  background-color: #28a745 !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 8px !important;
+  padding: 12px 24px !important;
+  font-size: 16px !important;
+  font-weight: bold !important;
+  cursor: pointer !important;
+  margin-top: 20px !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+}
+
+.next-step-button:hover {
+  background-color: #218838 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+}
+
+.next-step-button:active {
+  background-color: #1e7e34 !important;
+  transform: translateY(0) !important;
+} 
+
+/* 업무 생성 로딩 화면 */
+.workspace-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  padding: 40px;
+}
+
+.loading-content {
+  text-align: center;
+  max-width: 400px;
+}
+
+.loading-spinner {
+  width: 60px;
+  height: 60px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #ff9800;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+.loading-content h3 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.loading-content p {
+  margin: 0 0 30px 0;
+  color: #666;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.loading-progress {
+  margin-top: 20px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background-color: #e9ecef;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff9800, #ffc107);
+  border-radius: 4px;
+  animation: progress-animation 2s ease-in-out infinite;
+}
+
+@keyframes progress-animation {
+  0% { width: 0%; }
+  50% { width: 70%; }
+  100% { width: 100%; }
+}
+
+/* 기존 스피너 애니메이션 */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+} 

@@ -54,6 +54,25 @@ export const useApi = () => {
       authenticatedRequest(token => apiService.getGameChatHistory(token, page, limit)), [authenticatedRequest]),
     deleteChatHistory: useCallback((roomId: string) =>
       authenticatedRequest(token => apiService.deleteChatHistory(token, roomId)), [authenticatedRequest]),
+    // Game APIs
+    createGame: useCallback((roomId: string, players: Array<{id: string, name: string}>) =>
+      authenticatedRequest(token => apiService.createGame(token, roomId, players)), [authenticatedRequest]),
+    createContext: useCallback((roomId: string, maxTurn: number, story: string) =>
+      authenticatedRequest(token => apiService.createContext(token, roomId, maxTurn, story)), [authenticatedRequest]),
+    createAgenda: useCallback((roomId: string) =>
+      authenticatedRequest(token => apiService.createAgenda(token, roomId)), [authenticatedRequest]),
+    createTask: useCallback((roomId: string) =>
+      authenticatedRequest(token => apiService.createTask(token, roomId)), [authenticatedRequest]),
+    createOvertime: useCallback((roomId: string) =>
+      authenticatedRequest(token => apiService.createOvertime(token, roomId)), [authenticatedRequest]),
+    updateContext: useCallback((roomId: string, agendaSelections: any, taskSelections: any, overtimeSelections: any) =>
+      authenticatedRequest(token => apiService.updateContext(token, roomId, agendaSelections, taskSelections, overtimeSelections)), [authenticatedRequest]),
+    createExplanation: useCallback((roomId: string) =>
+      authenticatedRequest(token => apiService.createExplanation(token, roomId)), [authenticatedRequest]),
+    calculateResult: useCallback((roomId: string) =>
+      authenticatedRequest(token => apiService.calculateResult(token, roomId)), [authenticatedRequest]),
+    finishGame: useCallback((roomId: string) =>
+      authenticatedRequest(token => apiService.finishGame(token, roomId)), [authenticatedRequest]),
     logout: useCallback(() => apiService.logout(), []),
   };
 }; 

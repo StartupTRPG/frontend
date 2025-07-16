@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { SocketEventType, UserInfo } from '../types/socket';
+import { SocketEventType, UserInfo, VoteAgendaRequest } from '../types/socket';
 import { handleUnauthorizedError } from '../utils/authUtils';
 import { useSocketStore } from '../stores/socketStore';
 import {
@@ -160,7 +160,7 @@ export const useSocket = (options: UseSocketOptions) => {
         SocketEventType.CREATE_GAME, SocketEventType.CREATE_CONTEXT, SocketEventType.CREATE_AGENDA,
         SocketEventType.CREATE_TASK, SocketEventType.CREATE_OVERTIME, SocketEventType.UPDATE_CONTEXT,
         SocketEventType.CREATE_EXPLANATION, SocketEventType.CALCULATE_RESULT, SocketEventType.GET_GAME_PROGRESS,
-        SocketEventType.GAME_PROGRESS_UPDATED
+        SocketEventType.GAME_PROGRESS_UPDATED, SocketEventType.VOTE_AGENDA
       ];
       
       allEvents.forEach(eventType => {
@@ -464,6 +464,20 @@ export const useSocket = (options: UseSocketOptions) => {
     globalSocket.emit(SocketEventType.CREATE_AGENDA, request);
   }, []);
 
+  const voteAgenda = useCallback((roomId: string, agendaId: string, selectedOptionId: string) => {
+    if (!globalSocket?.connected) {
+      return;
+    }
+    
+    const request: VoteAgendaRequest = {
+      room_id: roomId,
+      agenda_id: agendaId,
+      selected_option_id: selectedOptionId
+    };
+    
+    globalSocket.emit(SocketEventType.VOTE_AGENDA, request);
+  }, []);
+
   const createTask = useCallback((roomId: string) => {
     if (!globalSocket?.connected) {
       
@@ -573,6 +587,7 @@ export const useSocket = (options: UseSocketOptions) => {
     createGame,
     createContext,
     createAgenda,
+    voteAgenda, // 추가
     createTask,
     createOvertime,
     updateContext,
