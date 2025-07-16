@@ -108,7 +108,9 @@ const GamePage: React.FC = () => {
     finishGame,
     sendGameMessage,
     voteAgenda, // 추가
-    createTask // 추가
+    createTask, // 추가
+    createOvertime, // 추가
+    getGameProgress // 추가
   } = useSocket({
     token: useAuthStore.getState().accessToken || '',
   });
@@ -295,22 +297,13 @@ const GamePage: React.FC = () => {
         setOvertimeLoading(true);
         setResultLoading(true);
         setPrologueLoading(true); // 프롤로그 로딩 활성화
-        setJobsLoading(true);
         
-        // 프롤로그 상태로 설정
-        setWorkspaceState('prologue');
-        
-        // 게임 시작 시 방 정보 갱신 (중복 방지)
-        if (!isRefreshing) {
-          isRefreshing = true;
-          getRoom(roomId).then(res => {
-            setRoom(res.data);
-            isRefreshing = false;
-          }).catch(error => {
-            isRefreshing = false;
-          });
+        // 기존 게임 상태 확인
+        if (socket && roomId) {
+          getGameProgress(roomId);
         }
-      } else {
+        
+        console.log('게임 시작됨:', data);
       }
     };
 
@@ -400,6 +393,18 @@ const GamePage: React.FC = () => {
       }
     };
 
+    // overtime 생성 이벤트 핸들러 추가
+    const handleOvertimeCreated = (data: any) => {
+      if (data.room_id === roomId) {
+        // overtime 데이터 설정
+        setOvertimeData({
+          task_list: data.task_list
+        });
+        setOvertimeLoading(false); // 로딩 완료
+        console.log('Overtime 생성 완료:', data);
+      }
+    };
+
     // 아젠다 투표 broadcast 이벤트 핸들러 추가
     const handleAgendaVoteBroadcast = (data: AgendaVoteBroadcastResponse) => {
       if (data.room_id === roomId) {
@@ -478,6 +483,15 @@ const GamePage: React.FC = () => {
           setPrologueData({ story: data.story });
           setPrologueLoading(false);
         }
+
+        // overtime 데이터가 있으면 처리
+        if (data.overtime_task_list && Object.keys(data.overtime_task_list).length > 0) {
+          setOvertimeData({
+            task_list: data.overtime_task_list
+          });
+          setOvertimeLoading(false);
+          console.log('Overtime 데이터 업데이트:', data.overtime_task_list);
+        }
       }
     };
 
@@ -486,6 +500,7 @@ const GamePage: React.FC = () => {
     socket.on('context_created', handleContextCreated);
     socket.on(SocketEventType.CREATE_AGENDA, handleAgendaCreated);
     socket.on('task_created', handleTaskCreated); // 추가
+    socket.on('overtime_created', handleOvertimeCreated); // 추가
     socket.on(SocketEventType.AGENDA_VOTE_BROADCAST, handleAgendaVoteBroadcast); // 추가
     socket.on(SocketEventType.AGENDA_VOTE_COMPLETED, handleAgendaVoteCompleted); // 추가
     socket.on(SocketEventType.FINISH_GAME, handleGameFinish);
@@ -497,6 +512,7 @@ const GamePage: React.FC = () => {
       socket.off('context_created', handleContextCreated);
       socket.off(SocketEventType.CREATE_AGENDA, handleAgendaCreated);
       socket.off('task_created', handleTaskCreated); // 추가
+      socket.off('overtime_created', handleOvertimeCreated); // 추가
       socket.off(SocketEventType.AGENDA_VOTE_BROADCAST, handleAgendaVoteBroadcast); // 추가
       socket.off(SocketEventType.AGENDA_VOTE_COMPLETED, handleAgendaVoteCompleted); // 추가
       socket.off(SocketEventType.FINISH_GAME, handleGameFinish);
@@ -1510,8 +1526,18 @@ const GamePage: React.FC = () => {
                                         setWorkTaskIndex(workTaskIndex + 1);
                                         setSelectedOption(null); // 선택 초기화
                                       } else {
-                                        // 모든 업무 완료 후 결과 화면으로
-                                        setWorkspaceState('work_result');
+                                        // 모든 업무 완료 시 overtime 생성 요청
+                                        if (socket && roomId) {
+                                          createOvertime(roomId);
+                                          setOvertimeLoading(true); // 로딩 시작
+                                        }
+                                        setWorkspaceState('overtime');
+                                        setSelectedOption(null);
+                                        
+                                        // 이미 overtime 데이터가 있으면 로딩 완료
+                                        if (overtimeData && overtimeData.task_list) {
+                                          setOvertimeLoading(false);
+                                        }
                                       }
                                     }}
                                   >
@@ -1534,47 +1560,101 @@ const GamePage: React.FC = () => {
             {/* --- 상태 3: Overtime / Rest --- */}
             {/* ---------------------------------- */}
             {workspaceState === 'overtime' && (() => {
-              // "나의" 야근/휴식 카드를 선택 (디자인 확인을 위해 임시로 데이터 전환)
-              const taskData = {
-                overtime: overtimeData.task_list.player_1[0],
-                rest: overtimeData.task_list.player_1[0], // 임시로 같은 데이터 사용
-              };
-              const task = taskData[overtimeView];
-              const themeClass = `theme-${task.overtime_task_type}`; // 'theme-overtime' or 'theme-rest'
+              if (overtimeLoading) {
+                return (
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    padding: '40px',
+                    fontSize: '18px',
+                    color: '#666'
+                  }}>
+                    <div style={{ 
+                      width: '24px', 
+                      height: '24px', 
+                      border: '3px solid #f3f3f3', 
+                      borderTop: '3px solid #28a745', 
+                      borderRadius: '50%', 
+                      animation: 'spin 1s linear infinite',
+                      marginRight: '15px'
+                    }}></div>
+                    야근/휴식 옵션 생성 중...
+                  </div>
+                );
+              }
+              
+              if (!overtimeData || !overtimeData.task_list) {
+                // 데이터가 없으면 게임 상태 다시 확인
+                if (socket && roomId) {
+                  getGameProgress(roomId);
+                  setOvertimeLoading(true);
+                }
+                
+                return (
+                  <div style={{ 
+                    textAlign: 'center',
+                    padding: '40px',
+                    fontSize: '18px',
+                    color: '#666'
+                  }}>
+                    야근/휴식 데이터를 불러오는 중...
+                  </div>
+                );
+              }
+              
+              // 현재 플레이어의 overtime 데이터 가져오기
+              const playerOvertimeTasks = overtimeData.task_list[profile.id] || [];
+              
+              if (playerOvertimeTasks.length === 0) {
+                return (
+                  <div style={{ 
+                    textAlign: 'center',
+                    padding: '40px',
+                    fontSize: '18px',
+                    color: '#666'
+                  }}>
+                    나에게 할당된 야근/휴식 옵션이 없습니다.
+                  </div>
+                );
+              }
 
               return (
-                <div className={`workspace-overtime-session ${themeClass}`}>
-                  {/* --- 디자인 확인용 임시 토글 버튼 --- */}
-                  <div className="temp-overtime-toggle">
-                    <button onClick={() => setOvertimeView('overtime')} disabled={overtimeView === 'overtime'}>🌙 야근 보기</button>
-                    <button onClick={() => setOvertimeView('rest')} disabled={overtimeView === 'rest'}>☀️ 휴식 보기</button>
+                <div className="workspace-overtime-session">
+                  <div className="overtime-session-header">
+                    <h3>야근/휴식 선택</h3>
+                    <p>오늘 하루를 마무리하는 방법을 선택하세요.</p>
                   </div>
-                  {/* ------------------------------------ */}
-
-                  <div className="overtime-card">
-                    <div className="overtime-card-header">
-                      <span className="task-type-badge">
-                        {task.overtime_task_type === 'overtime' ? '🌙 야근' : '☀️ 휴식'}
-                      </span>
-                      <h3>{task.overtime_task_name}</h3>
-                    </div>
-                    <p className="overtime-description">{task.overtime_task_description}</p>
-                    <div className="overtime-options">
-                      {task.overtime_task_options.map((option: any) => (
-                        <button 
-                          key={option.overtime_task_option_id} 
-                          className="overtime-option-button"
-                          onClick={() => {
-                            // (임시) 다음 날로 넘어가는 로직
-                            setAgendaIndex(0);
-                            setWorkspaceState('agenda');
-                          }}
-                        >
-                          <span className="option-text">{option.overtime_task_option_text}</span>
-                          <span className="option-summary">{option.overtime_task_option_impact_summary}</span>
-                        </button>
-                      ))}
-                    </div>
+                  <div className="overtime-list">
+                    {playerOvertimeTasks.map((task: any, index: number) => (
+                      <div key={task.overtime_task_id} className="overtime-card">
+                        <div className="overtime-card-header">
+                          <span className="task-type-badge">
+                            {task.overtime_task_type === 'overtime' ? '🌙 야근' : '☀️ 휴식'}
+                          </span>
+                          <h4>{task.overtime_task_name}</h4>
+                        </div>
+                        <p className="overtime-description">{task.overtime_task_description}</p>
+                        <div className="overtime-options">
+                          {task.overtime_task_options?.map((option: any) => (
+                            <button 
+                              key={option.overtime_task_option_id} 
+                              className="overtime-option-button"
+                              onClick={() => {
+                                // 선택한 옵션 저장
+                                setSelectedOption(option.overtime_task_option_id);
+                                
+                                // 다음 단계로 이동 (임시로 게임 결과로)
+                                setWorkspaceState('game_result');
+                              }}
+                            >
+                              <span className="option-text">{option.overtime_task_option_text}</span>
+                              <span className="option-summary">{option.overtime_task_option_impact_summary}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               );
